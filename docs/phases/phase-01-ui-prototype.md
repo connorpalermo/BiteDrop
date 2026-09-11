@@ -90,6 +90,34 @@ Add `"@bitedrop/core": ["packages/core/src/index.ts"]` and
 `"@bitedrop/core/mock": ["packages/core/src/mock/index.ts"]` to the
 `tsconfig.base.json` paths, and `transpilePackages: ['@bitedrop/core']` to
 `apps/web/next.config.ts`.
+**ESLint must enforce the limits in `CLAUDE.md` → Code standards** from the first
+commit, because retrofitting `max-lines` onto an existing codebase is painful:
+
+```js
+// eslint.config.js (flat config)
+rules: {
+  'max-lines': ['error', { max: 400, skipBlankLines: true, skipComments: true }],
+  'max-lines-per-function': ['error', { max: 50, skipBlankLines: true, skipComments: true }],
+  'max-params': ['error', 4],
+  'complexity': ['error', 12],
+  '@typescript-eslint/no-explicit-any': 'error',
+  '@typescript-eslint/no-floating-promises': 'error',
+  'import/no-default-export': 'error',
+}
+```
+
+Two exemption blocks are required, or the config contradicts this spec:
+
+```js
+// mock data is flat fixture data — 40 drops is ~800 lines and splitting buys nothing
+{ files: ['packages/core/src/mock/**'], rules: { 'max-lines': 'off' } },
+// Next.js requires default exports from pages, layouts, and route files
+{ files: ['apps/web/app/**/{page,layout,error,loading,not-found,route}.tsx',
+          'apps/web/app/**/{page,layout,error,loading,not-found,route}.ts',
+          'apps/web/next.config.ts'],
+  rules: { 'import/no-default-export': 'off' } },
+```
+
 `tsconfig.base.json` sets `"strict": true` and path alias
 `"@bitedrop/core": ["packages/core/src"]`. `apps/web/tsconfig.json` extends it and
 adds `"@/*": ["./*"]`.
@@ -621,6 +649,11 @@ npm run check
 npm test
 npm run build && npx next start -p 3000   # then run Lighthouse against :3000
 grep -rn "core/mock" apps/web --include=*.ts --include=*.tsx   # expect 1 hit
+
+# no file over 400 real lines outside the declared exemptions
+git ls-files '*.ts' '*.tsx' | grep -v 'src/mock/' \
+  | xargs -I{} sh -c 'n=$(grep -cvE "^\s*(//|$)" "{}"); [ "$n" -gt 400 ] && echo "$n {}"' \
+  ; echo "(no lines above = within limit)"
 grep -rnE "#[0-9a-fA-F]{3,8}\b" apps/web --include=*.tsx --include=*.css \
   | grep -v tokens.css        # review every hit; only non-colour uses are allowed
 ```

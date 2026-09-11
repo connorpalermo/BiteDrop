@@ -192,6 +192,57 @@ Honest assessment of what breaks first, and what the fix is — none of which re
 | ~50+ sources | Hourly run exceeds runtime | Shard by source across parallel jobs — already per-source isolated |
 | Postgres FTS quality | Poor search relevance | Swap the search repository for Typesense/Meilisearch |
 | Read traffic | Slow feed | The feed is cacheable: ISR + `Cache-Control`; add a read replica |
-| Vercel Hobby limits | Usage caps | Move web to Cloudflare/Fly; the app holds no host-specific code |
+| Vercel Hobby limits | Usage caps | Move web to Cloudflare/Fly/a VPS — see §9 for the one piece that needs real work |
 
 The one structural commitment is Postgres. Everything else is behind an adapter.
+
+## 9. Portability — what is and isn't coupled
+
+Nothing in the design is *structurally* tied to a vendor, but lock-in creeps in
+through dependency choices rather than architecture. This section is the guard.
+
+| Component | Coupled to | Moving it |
+|---|---|---|
+| `apps/ingest` | Nothing. Plain Node + Postgres URL | Run it anywhere cron exists. **Zero work** |
+| `packages/core` | Nothing. Pure functions | N/A |
+| `packages/db` | Postgres the protocol, not the host | Change `DATABASE_URL`. **Zero work** |
+| Database | Standard Postgres | `pg_dump` → restore on RDS/Fly/Supabase/a box. Hours |
+| Scheduler | GitHub Actions YAML | Any cron, Worker trigger, or systemd timer. Minutes |
+| `apps/web` | Next.js, not Vercel | `next build && next start` on any Node host — **except image optimisation, below** |
+
+### The one piece that needs real work
+
+**`next/image` optimisation is the only genuine soft spot.** On Vercel it is
+automatic; self-hosted it needs `sharp` installed and a cache directory, and on
+Cloudflare it needs a custom loader. Everything else in the web app is stock Next.js
+that `next start` serves anywhere.
+
+This is a known, bounded cost — a day, not a rewrite — and it gets smaller in Phase 9
+when images move to R2 and can be served pre-sized.
+
+### Rules that keep it this way
+
+These are easy to violate silently, which is why they are written down:
+
+1. **Use a standard Postgres driver** — `postgres.js` or `node-postgres`. Do **not**
+   use `@neondatabase/serverless`: it is a Neon-specific HTTP/WebSocket driver and
+   adopting it couples every query path to Neon. The standard driver over TCP works on
+   Neon and everywhere else.
+2. **No `@vercel/*` runtime packages.** No Vercel KV, Blob, Edge Config, or Postgres
+   wrapper. If something needs key-value storage, it goes in Postgres.
+3. **Talk to R2 over the S3-compatible API** (Phase 9), not a Cloudflare-specific SDK.
+   R2, S3, B2, and Minio then become a config change.
+4. **Workers AI stays behind `LlmProvider`** (Phase 8) — one implementation file, never
+   imported directly by the pipeline.
+5. **No platform-specific primitives in app code** — no Durable Objects, no Cloudflare
+   bindings, no Vercel middleware tricks. If a platform feature looks necessary, that
+   is a design discussion first.
+6. **Keep ingestion out of the web app.** It is the highest-risk, most platform-hostile
+   code in the project; as a standalone CLI it can always be moved somewhere with no
+   limits.
+
+### What we are genuinely betting on
+
+**Postgres, and TypeScript.** Both are deliberate, and neither is a vendor.
+Everything else — host, scheduler, object store, model provider, search engine — sits
+behind an interface or a connection string.

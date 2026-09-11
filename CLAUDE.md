@@ -138,6 +138,13 @@ Easy to violate by accident; each one has a real cost.
     time. A feed sorting by a computed expression cannot use an index.
 12. **When uncertain about a drop, use `status = 'rumored'` and low
     `confidence`** — never present an unconfirmed release as fact.
+13. **Use a standard Postgres driver** (`postgres.js` / `node-postgres`), never
+    `@neondatabase/serverless`. A Neon-specific driver couples every query path to
+    one host for no benefit we need.
+14. **No platform-specific primitives in app code** — no `@vercel/*` runtime
+    packages, no Cloudflare bindings, no Durable Objects. Object storage goes
+    through the S3-compatible API; key-value goes in Postgres. Full reasoning in
+    [`docs/01-architecture.md`](./docs/01-architecture.md) §9.
 
 ---
 
@@ -180,10 +187,89 @@ Docker runs **Postgres only** — Node runs natively on the host.
 - **Integration** — repositories against a real `bitedrop_test` database. No mocked database: it tests the mock, and every interesting bug here is a constraint or query-plan bug.
 - **E2E** (Playwright) — a few smoke paths only.
 
-## Code style
+## Code standards
+
+### Enforced by tooling — not negotiable, and not your judgment call
+
+These are ESLint errors, so CI fails on them. Configured in Phase 1.
+
+| Rule | Limit |
+|---|---|
+| `max-lines` | **400** per file (blank and comment lines excluded) |
+| `max-lines-per-function` | 50 |
+| `max-params` | 4 — beyond that, take an options object |
+| `complexity` | 12 |
+| `@typescript-eslint/no-explicit-any` | error |
+| `@typescript-eslint/no-floating-promises` | error |
+| `import/no-default-export` | error — named exports only, so grep and rename are reliable |
+
+**Exempt from `max-lines`** (declared in the ESLint config, not worked around
+per-file): `packages/core/src/mock/**` and `packages/db/migrations/**`. Both are
+flat data, where splitting adds indirection and buys nothing.
+
+### Size and structure
+
+- One exported concept per file; the filename names it.
+- A file pushing 400 lines is doing two jobs. Split by **responsibility**, never by
+  line count — two arbitrary halves are worse than one long cohesive file.
+- No `utils.ts` or `helpers.ts`. Name the module after what it does.
+
+### Avoiding N+1 queries
+
+Invariant 1 (all SQL in `packages/db/repositories/`) is the precondition; these are
+the rules that make it pay off:
+
+- **Repositories return fully-hydrated aggregates.** A caller must never need a
+  follow-up query to render what it already asked for. `FoodDropSummary` arrives with
+  its countries, retailers, and source count attached — that is why those fields are
+  on the type.
+- **A list query uses a bounded number of queries: `1 + k`**, where `k` is the number
+  of child collections — never `1 + n` where `n` is the number of rows. Joins,
+  `json_agg`, or one batched `WHERE id = ANY($1)` per collection; never a query
+  inside a loop.
+- **Integration tests assert the query count** for the feed and detail reads. A
+  regression that quietly turns 1 query into 25 should fail CI, not get noticed in
+  production six months later.
+- Denormalise deliberately when the read path needs it (`source_count`,
+  `trending_score`), and maintain it in the same transaction as the write.
+
+### Abstraction — DRY, with judgment
+
+- **DRY applies to knowledge, not to text that looks similar.** Two functions with the
+  same shape but different reasons to change are not duplication, and merging them
+  couples things that should move independently.
+- **Rule of three:** extract on the third occurrence, not the second. Premature
+  abstraction costs more than the duplication it prevents, because it is harder to
+  reverse.
+- Prefer a shared function to a shared base class. Prefer passing data to inheritance.
+
+### Interface contracts
+
+- **Define the interface when the second implementation appears**, not the first —
+  one implementation gives you nothing to generalise from, so you would be guessing.
+  (The exception is a boundary we already know is swappable: `FoodDropRepository`,
+  `SourceAdapter`, `LlmProvider`. Those are designed as seams on purpose.)
+- **Interfaces live in `packages/core`**, implementations elsewhere. Implementations
+  depend on the interface; never the reverse. That direction is what makes the
+  Phase 2 mock→Postgres swap a one-file change.
+- Every external boundary — database, HTTP, LLM, object store — sits behind an
+  interface in core. This is what makes them both swappable and testable without a
+  network.
+
+### Errors
+
+- **Never catch to silence.** Catch to handle, enrich, or translate — nothing else.
+- `Result<T, E>` for expected failures (a source is down, extraction found nothing);
+  `throw` for bugs and broken invariants.
+- Validate external data with Zod **at** the boundary. Inside the boundary, trust the
+  types — re-validating everywhere is noise that hides the real checks.
+
+### Naming and types
 
 - TypeScript strict. No `any`, no `@ts-ignore`.
 - Zod schemas are the single source of truth; infer TS types from them.
+- Booleans read as predicates: `isPublished`, `hasImage`, `shouldRetry`.
+- No abbreviations beyond the universally understood (`id`, `url`, `db`).
 - No hardcoded colours outside `tokens.css`.
 - Config validated with Zod at startup — fail fast and loudly on a bad deploy.
 - Secrets in env vars only, never committed. `.env.example` stays current.
