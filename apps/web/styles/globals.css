@@ -40,6 +40,8 @@
   --spacing-8: var(--space-8);
 
   --shadow-card: var(--shadow-card);
+
+  --height-sticky-panel: var(--sticky-panel-max-h);
 }
 
 body {

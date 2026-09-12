@@ -25,7 +25,7 @@ export function FilterSidebar({
 
   return (
     <aside className="hidden lg:block lg:w-72 lg:flex-none">
-      <div className="flex flex-col gap-5 lg:sticky lg:top-4">
+      <div className="flex flex-col gap-5 lg:sticky lg:top-4 lg:max-h-sticky-panel lg:overflow-y-auto lg:p-2 lg:-m-2">
         <SearchInput value={query.search ?? ''} onChange={setSearch} />
         <SortSelect value={query.sort} onChange={setSort} />
         <ChipFilterGroup

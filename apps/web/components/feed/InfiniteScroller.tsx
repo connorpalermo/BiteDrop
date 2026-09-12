@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FeedQuery, FoodDropSummary } from '@bitedrop/core';
 import { loadMoreDrops } from '@/app/actions/feed';
 import { Button } from '@/components/ui/Button';
+import { scrollToTopRespectingMotion } from '@/lib/scrollToTop';
 import { EmptyState } from './EmptyState';
 import { FeedGrid } from './FeedGrid';
 import { FeedGridSkeleton } from './FeedGridSkeleton';
@@ -42,6 +43,16 @@ export function InfiniteScroller({ initialItems, initialCursor, query }: Infinit
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // This component remounts on every filter/search/sort change (page.tsx keys
+  // it by the query), so a mount-only effect fires exactly when the result set
+  // changes — not on later "Load more" appends within the same query, which
+  // only update state, not this effect. Resets scroll so a short result set
+  // (e.g. 4 items) is never left showing an empty page below a stale scroll
+  // position from a much longer previous list.
+  useEffect(() => {
+    scrollToTopRespectingMotion();
+  }, []);
 
   const loadMore = useCallback(() => {
     if (!cursor || loading) return;

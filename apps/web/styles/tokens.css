@@ -45,6 +45,11 @@
      when placed side by side in a filter row */
   --control-h-sm: 2rem;
   --control-h-md: 2.5rem;
+
+  /* max height for a sticky panel that scrolls independently of the page
+     once its own content exceeds the viewport — e.g. the filter sidebar.
+     1rem top gap to match its sticky offset, 1rem bottom breathing room. */
+  --sticky-panel-max-h: calc(100dvh - 2rem);
 }
 
 @media (prefers-color-scheme: dark) {
