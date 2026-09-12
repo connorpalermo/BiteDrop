@@ -1,0 +1,84 @@
+:root {
+  /* neutrals — warm-biased toward the accent */
+  --bg: #fffbf8;
+  --surface: #ffffff;
+  --surface-2: #f7f1ed;
+  --border: #e8ded7;
+  --text: #1a1310;
+  --text-2: #6b5d55;
+  --text-3: #9c8c83;
+
+  /* accents — only two hues in the whole product */
+  --accent: #e8431f;
+  --accent-hover: #cc3a1a;
+  --accent-fg: #ffffff;
+  --amber: #e08700;
+  --amber-fg: #1a1310;
+
+  --focus: #e8431f;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --shadow-card: 0 1px 2px rgb(26 19 16 / 6%), 0 4px 12px rgb(26 19 16 / 5%);
+
+  /* type scale */
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.375rem;
+  --fs-2xl: 1.75rem;
+  --fs-3xl: 2.5rem;
+
+  /* spacing scale — the ONLY permitted spacing values */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 3rem;
+
+  /* control heights — shared by Button, Input, and Select so they line up
+     when placed side by side in a filter row */
+  --control-h-sm: 2rem;
+  --control-h-md: 2.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #12100f;
+    --surface: #1c1917;
+    --surface-2: #262220;
+    --border: #332e2a;
+    --text: #f7f3f0;
+    --text-2: #b5a9a1;
+    --text-3: #857a73;
+    --accent: #ff6b45;
+    --accent-hover: #ff8163;
+    --accent-fg: #1a1310;
+    --amber: #f0a829;
+    --amber-fg: #1a1310;
+    --focus: #ff6b45;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 12px rgb(0 0 0 / 30%);
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #12100f;
+  --surface: #1c1917;
+  --surface-2: #262220;
+  --border: #332e2a;
+  --text: #f7f3f0;
+  --text-2: #b5a9a1;
+  --text-3: #857a73;
+  --accent: #ff6b45;
+  --accent-hover: #ff8163;
+  --accent-fg: #1a1310;
+  --amber: #f0a829;
+  --amber-fg: #1a1310;
+  --focus: #ff6b45;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 12px rgb(0 0 0 / 30%);
+}

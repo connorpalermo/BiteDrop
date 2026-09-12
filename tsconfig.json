@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "preserve",
+    "allowJs": false,
+    "paths": {
+      "@bitedrop/core": ["packages/core/src/index.ts"],
+      "@bitedrop/core/mock": ["packages/core/src/mock/index.ts"],
+      "@/*": ["apps/web/*"]
+    }
+  },
+  "include": [
+    "packages/core/src/**/*.ts",
+    "packages/core/test/**/*.ts",
+    "apps/web/**/*.ts",
+    "apps/web/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "**/node_modules", "**/.next", "**/dist"]
+}

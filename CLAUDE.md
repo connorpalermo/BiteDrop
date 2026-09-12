@@ -4,7 +4,9 @@ A discovery feed for new, unusual, and limited-time food releases worldwide.
 The differentiator is the **canonical FoodDrop**: ten outlets reporting one new
 Oreo flavour produce *one* drop with ten sources attached.
 
-**Current status:** planning complete, no application code. Next up is Phase 1.
+**Current status:** Phase 1 (UI prototype on mock data) is built and self-verified,
+awaiting review — see `docs/phases/phase-01-ui-prototype.md` → Outcome for the full
+implementation record. Not committed. Next up: review, then Phase 2 (Database).
 Keep this line current as phases land.
 
 Full design docs live in [`docs/`](./docs). This file carries only what changes
