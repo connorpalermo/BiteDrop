@@ -6,8 +6,9 @@ Oreo flavour produce *one* drop with ten sources attached.
 
 **Current status:** Phase 1 (UI prototype on mock data) is built and self-verified,
 awaiting review — see `docs/phases/phase-01-ui-prototype.md` → Outcome for the full
-implementation record. Not committed. Next up: review, then Phase 2 (Database).
-Keep this line current as phases land.
+implementation record. Not committed. Phase 2 (Database) is **planned but not
+started** — the spec is written and awaiting review at
+`docs/phases/phase-02-database.md`. Keep this line current as phases land.
 
 Full design docs live in [`docs/`](./docs). This file carries only what changes
 how we work — read the docs for detail, not this file.
