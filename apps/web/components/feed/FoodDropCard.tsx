@@ -87,7 +87,7 @@ export function FoodDropCard({ drop, priority }: FoodDropCardProps) {
 
   return (
     <Link href={`/drops/${drop.slug}`} className={`block h-full rounded-lg ${FOCUS_RING}`}>
-      <Card className="flex h-full flex-col">
+      <Card interactive className="flex h-full flex-col">
         <CardImage drop={drop} priority={priority} />
         <div className="flex flex-1 flex-col gap-1.5 p-3">
           <h3 className="line-clamp-2 font-display text-lg font-bold text-fg">

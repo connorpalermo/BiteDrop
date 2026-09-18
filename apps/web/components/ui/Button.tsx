@@ -6,9 +6,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md';
 }
 
+// primary/secondary get the bold-border, hard-shadow "sticker button" press
+// interaction; ghost stays quiet on purpose — it's the low-emphasis variant,
+// and a thick border would work against that.
 const VARIANT_CLASSES: Record<NonNullable<ButtonProps['variant']>, string> = {
-  primary: 'bg-accent hover:bg-accent-hover text-accent-fg',
-  secondary: 'bg-surface hover:bg-surface-2 text-fg border border-border',
+  primary:
+    'bg-gradient-accent hover:brightness-110 text-accent-fg border-2 border-fg shadow-brutal-sm hover:shadow-brutal active:shadow-none active:translate-x-0.5 active:translate-y-0.5',
+  secondary:
+    'bg-surface hover:bg-surface-2 text-fg border-2 border-fg shadow-brutal-sm hover:shadow-brutal active:shadow-none active:translate-x-0.5 active:translate-y-0.5',
   ghost: 'bg-transparent hover:bg-surface-2 text-fg-muted',
 };
 
@@ -25,7 +30,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`rounded-md font-medium inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:pointer-events-none ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${FOCUS_RING} ${className}`}
+      className={`rounded-md font-semibold inline-flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:pointer-events-none ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${FOCUS_RING} ${className}`}
       {...rest}
     />
   );

@@ -12,6 +12,9 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-fg: var(--accent-fg);
+  --color-accent-2: var(--accent-2);
+  --color-accent-2-hover: var(--accent-2-hover);
+  --color-accent-2-fg: var(--accent-2-fg);
   --color-amber: var(--amber);
   --color-amber-fg: var(--amber-fg);
   --color-focus: var(--focus);
@@ -40,13 +43,44 @@
   --spacing-8: var(--space-8);
 
   --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-brutal-sm: var(--shadow-brutal-sm);
+  --shadow-brutal: var(--shadow-brutal);
+  --shadow-brutal-lg: var(--shadow-brutal-lg);
 
   --height-sticky-panel: var(--sticky-panel-max-h);
 }
 
 body {
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: var(--bg-glow);
+  background-attachment: fixed;
   color: var(--text);
+}
+
+/* The one deliberate "pop" moment: a chili-to-matcha gradient, reused in
+   exactly two places (the accent-tone Badge and the primary Button) —
+   never applied more broadly than that. See tokens.css for why. */
+.bg-gradient-accent {
+  background-image: var(--gradient-accent);
+}
+
+/* A slow, gentle "alive" pulse — reserved for the single highest-urgency
+ * badge tone (status: new) so it reads as a genuine signal, not visual
+ * noise repeated across dozens of cards. Shadow-only (no scale/opacity), so
+ * it can't cause layout shift. Respects prefers-reduced-motion via the
+ * blanket rule below, same as every other animation in the app. */
+@keyframes brutal-pulse {
+  0%,
+  100% {
+    box-shadow: var(--shadow-brutal-sm);
+  }
+  50% {
+    box-shadow: var(--shadow-brutal);
+  }
+}
+.animate-brutal-pulse {
+  animation: brutal-pulse 2.4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

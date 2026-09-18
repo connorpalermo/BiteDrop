@@ -1,27 +1,59 @@
 :root {
-  /* neutrals — warm-biased toward the accent */
-  --bg: #fffbf8;
+  /* Neo-brutalist, cream-first palette. Cream is the flagship look (a "hype
+     drop app for food" reads better warm and bright than dark); dark mode
+     below carries the same bold-ink-on-bright-surface language inverted. */
+  --bg: #fdfbf7;
   --surface: #ffffff;
-  --surface-2: #f7f1ed;
-  --border: #e8ded7;
-  --text: #1a1310;
-  --text-2: #6b5d55;
-  --text-3: #9c8c83;
+  --surface-2: #f2ece0;
+  --border: #e4dcc8;
+  --text: #171412;
+  --text-2: #6b6259;
+  --text-3: #7a7064;
 
-  /* accents — only two hues in the whole product */
-  --accent: #e8431f;
-  --accent-hover: #cc3a1a;
+  /* Three real accents, each with a job — not decoration smeared everywhere:
+     chili red is the primary brand/action colour and the "New" badge base;
+     matcha is the deliberate "pop" partner (gradient + rare highlights only,
+     same restrained role the previous magenta held); mustard is the
+     "Limited Time" status colour, reused for a couple of energetic
+     secondary moments. */
+  --accent: #e0281a;
+  --accent-hover: #c72613;
   --accent-fg: #ffffff;
-  --amber: #e08700;
-  --amber-fg: #1a1310;
+  --accent-2: #a8e10c;
+  --accent-2-hover: #93c90a;
+  --accent-2-fg: #171412;
+  --amber: #ffc72c;
+  --amber-fg: #171412;
 
-  --focus: #e8431f;
+  --focus: #e0281a;
+  --gradient-accent: linear-gradient(135deg, var(--accent), var(--accent-2));
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  /* Ambient glow behind the page content — off in light mode (the
+     cream surface is already the "flagship" bright look), on in dark mode
+     where a flat neutral near-black background reads as generic rather than
+     "hype drop app." See dark blocks below. */
+  --bg-glow: none;
 
-  --shadow-card: 0 1px 2px rgb(26 19 16 / 6%), 0 4px 12px rgb(26 19 16 / 5%);
+  /* Neo-brutalist signature: flat, hard-edged, non-blurred offset shadows in
+     the ink colour (--text) rather than a soft blurred shadow — the
+     "sticker/collectible" look. Three sizes: resting, hover-lift, and the
+     larger one a card's hover state grows into. Border colour for the bold
+     2px borders is `--text` directly via the existing `border-fg` utility —
+     no separate token needed, and it inverts correctly in dark mode for
+     free. */
+  --shadow-brutal-sm: 2px 2px 0 0 var(--text);
+  --shadow-brutal: 4px 4px 0 0 var(--text);
+  --shadow-brutal-lg: 7px 7px 0 0 var(--text);
+
+  /* radii — chunkier than a typical card, "pop like a collectible" per the
+     brief; kept in the same --radius-lg slot so Card/Sheet/etc. stay
+     consistent with each other automatically */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 22px;
+
+  --shadow-card: var(--shadow-brutal);
+  --shadow-card-hover: var(--shadow-brutal-lg);
 
   /* type scale */
   --fs-xs: 0.75rem;
@@ -54,36 +86,58 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #12100f;
-    --surface: #1c1917;
-    --surface-2: #262220;
-    --border: #332e2a;
-    --text: #f7f3f0;
-    --text-2: #b5a9a1;
-    --text-3: #857a73;
-    --accent: #ff6b45;
-    --accent-hover: #ff8163;
-    --accent-fg: #1a1310;
-    --amber: #f0a829;
-    --amber-fg: #1a1310;
-    --focus: #ff6b45;
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 12px rgb(0 0 0 / 30%);
+    --bg: #190e08;
+    --surface: #331d10;
+    --surface-2: #4a2a14;
+    --border: #6b4527;
+    --text: #fdfbf7;
+    --text-2: #c9beae;
+    --text-3: #a89c8c;
+    --accent: #ff5540;
+    --accent-hover: #ff7360;
+    --accent-fg: #171412;
+    --accent-2: #bdf21a;
+    --accent-2-hover: #cdfa42;
+    --accent-2-fg: #171412;
+    --amber: #ffd45c;
+    --amber-fg: #171412;
+    --focus: #ff5540;
+    --bg-glow:
+      radial-gradient(circle at 12% -8%, rgb(255 85 64 / 0.18), transparent 42%),
+      radial-gradient(circle at 88% 4%, rgb(189 242 26 / 0.12), transparent 38%),
+      radial-gradient(circle at 50% 105%, rgb(255 212 92 / 0.08), transparent 45%);
+    --shadow-brutal-sm: 2px 2px 0 0 var(--text);
+    --shadow-brutal: 4px 4px 0 0 var(--text);
+    --shadow-brutal-lg: 7px 7px 0 0 var(--text);
+    --shadow-card: var(--shadow-brutal);
+    --shadow-card-hover: var(--shadow-brutal-lg);
   }
 }
 
 :root[data-theme='dark'] {
-  --bg: #12100f;
-  --surface: #1c1917;
-  --surface-2: #262220;
-  --border: #332e2a;
-  --text: #f7f3f0;
-  --text-2: #b5a9a1;
-  --text-3: #857a73;
-  --accent: #ff6b45;
-  --accent-hover: #ff8163;
-  --accent-fg: #1a1310;
-  --amber: #f0a829;
-  --amber-fg: #1a1310;
-  --focus: #ff6b45;
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 12px rgb(0 0 0 / 30%);
+  --bg: #190e08;
+  --surface: #331d10;
+  --surface-2: #4a2a14;
+  --border: #6b4527;
+  --text: #fdfbf7;
+  --text-2: #c9beae;
+  --text-3: #a89c8c;
+  --accent: #ff5540;
+  --accent-hover: #ff7360;
+  --accent-fg: #171412;
+  --accent-2: #bdf21a;
+  --accent-2-hover: #cdfa42;
+  --accent-2-fg: #171412;
+  --amber: #ffd45c;
+  --amber-fg: #171412;
+  --focus: #ff5540;
+  --bg-glow:
+    radial-gradient(circle at 12% -8%, rgb(255 85 64 / 0.18), transparent 42%),
+    radial-gradient(circle at 88% 4%, rgb(189 242 26 / 0.12), transparent 38%),
+    radial-gradient(circle at 50% 105%, rgb(255 212 92 / 0.08), transparent 45%);
+  --shadow-brutal-sm: 2px 2px 0 0 var(--text);
+  --shadow-brutal: 4px 4px 0 0 var(--text);
+  --shadow-brutal-lg: 7px 7px 0 0 var(--text);
+  --shadow-card: var(--shadow-brutal);
+  --shadow-card-hover: var(--shadow-brutal-lg);
 }

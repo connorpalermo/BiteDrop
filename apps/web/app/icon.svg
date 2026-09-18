@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-labelledby="bitedropLogoTitle">
+  <title id="bitedropLogoTitle">BiteDrop</title>
+  <defs>
+    <mask id="bite-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+      <rect x="0" y="0" width="200" height="200" fill="#fff" />
+      <circle cx="161" cy="27" r="28" fill="#000" />
+    </mask>
+  </defs>
+
+  <g mask="url(#bite-mask)">
+    <!-- dough ring -->
+    <path
+      fill-rule="evenodd"
+      d="M100,20 a80,80 0 1,0 0.1,0 Z M100,70 a30,30 0 1,1 -0.1,0 Z"
+      fill="#e8a951"
+      stroke="#171412"
+      stroke-width="10"
+      stroke-linejoin="round"
+    />
+    <!-- pink frosting ring -->
+    <path
+      fill-rule="evenodd"
+      d="M100,32 a68,68 0 1,0 0.1,0 Z M100,68 a32,32 0 1,1 -0.1,0 Z"
+      fill="#ff4fa3"
+      stroke="#171412"
+      stroke-width="8"
+      stroke-linejoin="round"
+    />
+
+    <!-- sprinkles -->
+    <rect x="68" y="66" width="20" height="7" rx="3.5" fill="#ffffff" transform="rotate(24 78 69.5)" />
+    <rect x="122" y="86" width="20" height="7" rx="3.5" fill="#2dd4bf" transform="rotate(-18 132 89.5)" />
+    <rect x="60" y="108" width="20" height="7" rx="3.5" fill="#5ec8f2" transform="rotate(-32 70 111.5)" />
+    <rect x="96" y="140" width="20" height="7" rx="3.5" fill="#ffffff" transform="rotate(10 106 143.5)" />
+    <rect x="132" y="122" width="20" height="7" rx="3.5" fill="#c77dff" transform="rotate(48 142 125.5)" />
+    <rect x="78" y="132" width="18" height="7" rx="3.5" fill="#2dd4bf" transform="rotate(-6 87 135.5)" />
+    <rect x="52" y="86" width="18" height="7" rx="3.5" fill="#ffe066" transform="rotate(70 61 89.5)" />
+  </g>
+
+  <!-- sparkle burst, outside the mask so it reads as bursting from the bite -->
+  <g fill="#ffc72c" stroke="#171412" stroke-width="2" stroke-linejoin="round">
+    <path d="M164,4 L169,17 L182,20 L169,23 L164,36 L159,23 L146,20 L159,17 Z" />
+    <path d="M189,32 L192,41 L200,44 L192,47 L189,56 L186,47 L178,44 L186,41 Z" />
+  </g>
+</svg>
