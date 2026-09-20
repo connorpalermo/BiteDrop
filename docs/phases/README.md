@@ -34,7 +34,7 @@ Phase work is left in the working tree for the repo owner to commit as they see 
 |---|---|---|---|
 | 1 | UI prototype on mock data | **Complete — awaiting review** | [phase-01](./phase-01-ui-prototype.md) |
 | 2 | Database + real reads | **Complete — awaiting review** | [phase-02](./phase-02-database.md) |
-| 3 | Deploy | Not started | — |
+| 3 | Deploy | **Planned — awaiting review** | [phase-03](./phase-03-deploy.md) |
 | 4 | Ingest CLI + first adapters | Not started | — |
 | 5 | Filter + rule-based extraction | Not started | — |
 | 6 | Deduplication | Not started | — |
