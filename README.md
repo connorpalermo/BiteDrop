@@ -8,9 +8,22 @@ outlets appears once, with ten sources attached.
 
 ## Status
 
-**Planning.** No application code yet. The architecture and phase plan are under
-review in [`docs/`](./docs); per-phase status is tracked in
-[`docs/phases/`](./docs/phases).
+**Phase 2 of 16.** The feed, filters, search, and detail pages run against a real
+Postgres database. Phases 1 (UI on mock data) and 2 (database + real reads) are
+built and self-verified, awaiting review — see [`docs/phases/`](./docs/phases) for
+per-phase records and [`CLAUDE.md`](./CLAUDE.md) for the current status line.
+
+## Quick start
+
+```bash
+nvm use
+npm install
+cp .env.example .env.local
+npm run dev   # starts Postgres in Docker, migrates, seeds, then next dev
+```
+
+Then open http://localhost:3000. See [`docs/03-local-dev.md`](docs/03-local-dev.md)
+for the full command reference.
 
 ## Documentation
 
