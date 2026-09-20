@@ -4,3 +4,4 @@ export * from './reference';
 export * from './repository';
 export * from './format';
 export * from './searchParams';
+export * from './normalize';

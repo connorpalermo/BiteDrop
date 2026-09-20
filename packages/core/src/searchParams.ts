@@ -5,8 +5,8 @@ import type { CategorySlug, CountryCode, DropStatus } from './types';
 /**
  * The plain shape Next.js hands a Server Component's `searchParams` prop, and
  * what `URLSearchParams` produces client-side — deliberately not a Next-specific
- * type, so this stays framework-agnostic per S7's note that Phase 2 reuses the
- * same contract server-side.
+ * type, so the same URL contract can be parsed server-side by any backend,
+ * not just this one.
  */
 export type RawSearchParams = Record<string, string | string[] | undefined>;
 

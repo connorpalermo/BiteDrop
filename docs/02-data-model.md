@@ -3,8 +3,13 @@
 Postgres 17. Extensions: `pg_trgm` (fuzzy matching), `unaccent` (normalisation),
 `pgcrypto` (UUID generation). All three are available on Neon free.
 
-DDL below is illustrative of intent — the authoritative version will be the
-Drizzle schema plus generated migrations in `packages/db`.
+DDL below is illustrative of intent — as of Phase 2, the authoritative version is the
+Drizzle schema (`packages/db/src/schema/`) plus its generated, committed migrations
+(`packages/db/migrations/`). Four differences from the DDL below, found by checking
+this schema against the domain types in `packages/core/src/types.ts`, are called out
+inline: `food_drop.short_description` and `.description` (`NOT NULL`), `source.name`
+(`UNIQUE`), and `search_text`'s pre-normalisation. See
+[`docs/phases/phase-02-database.md`](./phases/phase-02-database.md) S4.3/S18 for why.
 
 ---
 
@@ -18,7 +23,9 @@ The registry the brief asks for, plus the health fields it asks to track.
 CREATE TABLE source (
   id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   slug                   text NOT NULL UNIQUE,          -- 'brandeating-rss'
-  name                   text NOT NULL,
+  name                   text NOT NULL UNIQUE,          -- Phase 2: the seed resolves publications
+                                                        -- by name; without UNIQUE a re-run could
+                                                        -- create duplicate sources
   type                   source_type NOT NULL,          -- rss|json_api|html_listing|reddit|youtube
   url                    text NOT NULL,
   homepage_url           text,
@@ -190,7 +197,12 @@ CREATE TABLE food_drop (
   brand_id           uuid REFERENCES brand(id),
   category_id        smallint NOT NULL REFERENCES category(id),
   subcategory        text,
-  description        text,
+  short_description  text NOT NULL,               -- Phase 2: <=140 chars, what the card renders —
+                                                   -- FoodDropSummary.shortDescription is a distinct
+                                                   -- field from the full prose below, not a
+                                                   -- truncation of it
+  description        text NOT NULL DEFAULT '',    -- Phase 2: FoodDropDetail.description is `string`,
+                                                   -- not `string | null`
   status             drop_status NOT NULL,        -- new|coming_soon|limited_time|
                                                  -- returning|discontinued|rumored
   is_limited_time    boolean NOT NULL DEFAULT false,
@@ -210,7 +222,11 @@ CREATE TABLE food_drop (
   last_source_at     timestamptz,
   trending_score     real NOT NULL DEFAULT 0,
   view_count         integer NOT NULL DEFAULT 0,
-  search_text        text NOT NULL DEFAULT '',    -- composed on write
+  search_text        text NOT NULL DEFAULT '',    -- composed on write, already lowercased and
+                                                   -- diacritic-stripped by application code (Phase 2:
+                                                   -- unaccent() is STABLE, not IMMUTABLE, so it can't
+                                                   -- run inside this generated column's expression —
+                                                   -- see docs/phases/phase-02-database.md S6)
   search_vector      tsvector GENERATED ALWAYS AS (to_tsvector('english', search_text)) STORED,
   created_at         timestamptz NOT NULL DEFAULT now(),
   updated_at         timestamptz NOT NULL DEFAULT now()
@@ -408,6 +424,14 @@ explicit, unit-testable, and keeps the weighting logic in one reviewable functio
 This covers every example query in the brief (`Oreo`, `Taco Bell`, `pickle`, `Japan`,
 `Halloween`, `limited edition`, `drinks`). It goes behind a `SearchRepository` interface
 so that swapping in a dedicated engine later is one implementation, not a refactor.
+
+**The typo-tolerant fallback uses `word_similarity(needle, normalized_name)`, not plain
+`similarity()`.** Measured directly during Phase 2: `similarity('reeses caramel apple
+cups', 'reeses')` — an *exact*, correctly-spelled word — scores 0.28, under the 0.3
+threshold, because whole-string similarity is diluted by every word in `normalized_name`
+the query never claimed to match. `word_similarity()` scores the query against its
+best-matching word-boundary substring instead (1.0 for that same case), which is what
+"typo-tolerant" actually requires once a product name is more than one word.
 
 ### Trending
 

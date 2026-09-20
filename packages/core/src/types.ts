@@ -29,11 +29,10 @@ export type FoodDropSummary = z.infer<typeof foodDropSummarySchema>;
 export type FoodDropDetail = z.infer<typeof foodDropDetailSchema>;
 
 /**
- * Page and Facets are structural containers, not data crossing a validation
- * boundary in Phase 1 — mock data is constructed directly in TypeScript, never
- * parsed from JSON. A Zod generic here would add ceremony with nothing to guard
- * against yet. Revisit when Phase 2 introduces a real HTTP/DB boundary for these
- * shapes.
+ * Page and Facets are plain interfaces, not Zod schemas — they're structural
+ * containers, and the values inside them (FoodDropSummary etc.) are already
+ * validated at their own boundary. A Zod generic here would just be ceremony
+ * wrapping an already-validated shape.
  */
 export interface Page<T> {
   items: T[];

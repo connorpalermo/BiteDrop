@@ -1,4 +1,4 @@
-import type { CategoryRef, CountryRef, DropStatus, RetailerRef } from './types';
+import type { CategoryRef, CountryRef, DropStatus, FacetCount, RetailerRef } from './types';
 
 export const CATEGORIES: readonly CategoryRef[] = [
   { slug: 'fast_food', name: 'Fast Food', emoji: '🍔' },
@@ -76,4 +76,22 @@ export function findStatusLabel(status: DropStatus): string {
   const found = STATUSES.find((s) => s.value === status);
   if (!found) throw new Error(`Unknown status: ${status}`);
   return found.label;
+}
+
+/** Zero-fills a facet's counts against its closed, canonical set — every
+ * category/country/status appears even when its count is 0, so the sidebar
+ * never drops an option just because nothing currently matches it. Shared by
+ * MockFoodDropRepository and PgFoodDropRepository so both compute facets()
+ * identically instead of maintaining two copies of the same rule. */
+export function buildFacetCounts<T, V extends string>(
+  canonical: readonly T[],
+  valueOf: (t: T) => V,
+  labelOf: (t: T) => string,
+  counts: ReadonlyMap<string, number>,
+): FacetCount<V>[] {
+  return canonical.map((t) => ({
+    value: valueOf(t),
+    label: labelOf(t),
+    count: counts.get(valueOf(t)) ?? 0,
+  }));
 }

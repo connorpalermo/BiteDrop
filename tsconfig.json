@@ -7,14 +7,20 @@
     "paths": {
       "@bitedrop/core": ["packages/core/src/index.ts"],
       "@bitedrop/core/mock": ["packages/core/src/mock/index.ts"],
+      "@bitedrop/db": ["packages/db/src/index.ts"],
+      "@bitedrop/db/seed": ["packages/db/src/seed/index.ts"],
       "@/*": ["apps/web/*"]
     }
   },
   "include": [
     "packages/core/src/**/*.ts",
     "packages/core/test/**/*.ts",
+    "packages/db/src/**/*.ts",
+    "packages/db/test/**/*.ts",
     "apps/web/**/*.ts",
-    "apps/web/**/*.tsx"
+    "apps/web/**/*.tsx",
+    "vitest.config.ts",
+    "vitest.setup.ts"
   ],
   "exclude": ["node_modules", "**/node_modules", "**/.next", "**/dist"]
 }

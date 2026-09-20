@@ -1,4 +1,5 @@
 import {
+  buildFacetCounts,
   CATEGORIES,
   COUNTRIES,
   findCategory,
@@ -102,19 +103,6 @@ function tupleCompare(
 interface Keyed {
   summary: FoodDropSummary;
   sortValue: string | number;
-}
-
-function buildFacetCounts<T, V extends string>(
-  canonical: readonly T[],
-  valueOf: (t: T) => V,
-  labelOf: (t: T) => string,
-  counts: Map<string, number>,
-): FacetCount<V>[] {
-  return canonical.map((t) => ({
-    value: valueOf(t),
-    label: labelOf(t),
-    count: counts.get(valueOf(t)) ?? 0,
-  }));
 }
 
 export class MockFoodDropRepository implements FoodDropRepository {

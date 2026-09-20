@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: bitedrop-postgres
+    environment:
+      POSTGRES_USER: bitedrop
+      POSTGRES_PASSWORD: bitedrop
+      POSTGRES_DB: bitedrop
+    ports: ['5433:5432']
+    volumes:
+      - bitedrop-pgdata:/var/lib/postgresql/data
+      - ./packages/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bitedrop -d bitedrop']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  bitedrop-pgdata:

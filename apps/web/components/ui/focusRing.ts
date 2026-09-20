@@ -1,6 +1,7 @@
 /**
  * Shared focus-visible ring for every interactive element. Spread this into a
- * primitive's class list rather than retyping the classes — see S6.6.
+ * primitive's class list rather than retyping the classes, so focus behaviour
+ * stays identical everywhere and a theme change only has one place to update.
  * ring-focus and ring-offset-bg resolve through the --color-focus / --color-bg
  * theme tokens (globals.css @theme block) — not arbitrary values.
  */

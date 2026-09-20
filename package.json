@@ -9,17 +9,28 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "npm run dev -w @bitedrop/web",
+    "dev": "npm run db:up && npm run db:migrate && npm run db:seed && npm run dev -w @bitedrop/web",
     "build": "npm run build -w @bitedrop/web",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:migrate": "tsx packages/db/src/migrate.ts",
+    "db:generate": "drizzle-kit generate --config packages/db/drizzle.config.ts",
+    "db:seed": "tsx packages/db/src/seed/run.ts",
+    "db:reset": "docker compose down -v && npm run db:up && npm run db:migrate && npm run db:seed",
+    "db:studio": "drizzle-kit studio --config packages/db/drizzle.config.ts",
     "test": "vitest run",
+    "test:unit": "vitest run --project core",
     "check": "tsc --noEmit && eslint . && prettier --check ."
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "dotenv": "^17.0.0",
+    "drizzle-kit": "^0.31.0",
     "eslint": "^9.0.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.4.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.0.0",
     "vitest": "^3.0.0"

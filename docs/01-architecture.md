@@ -193,8 +193,38 @@ Honest assessment of what breaks first, and what the fix is — none of which re
 | Postgres FTS quality | Poor search relevance | Swap the search repository for Typesense/Meilisearch |
 | Read traffic | Slow feed | The feed is cacheable: ISR + `Cache-Control`; add a read replica |
 | Vercel Hobby limits | Usage caps | Move web to Cloudflare/Fly/a VPS — see §9 for the one piece that needs real work |
+| Many concurrent app instances | Postgres connection exhaustion | Put a pooler (Neon's built-in pooler, or PgBouncer) in front of `DATABASE_URL` |
 
 The one structural commitment is Postgres. Everything else is behind an adapter.
+
+**The web tier is already stateless and horizontally scalable, at no extra cost.**
+`apps/web` holds no state between requests — no session store, no in-process cache
+whose correctness depends on being the same instance across requests, nothing one
+running copy would need to know that another doesn't. Every request reads fresh from
+Postgres, which is the only shared state. That property falls directly out of two
+decisions above ("No Redis", ingestion kept entirely out of the web app) — it was not
+built separately and isn't something to revisit later. Run one instance or many, they
+all just query the same database and agree.
+
+That said, "many instances" means different things depending on where this is
+deployed: on Vercel (the current target) there is no replica count to set — functions
+autoscale per-request automatically. "Pods" or "replicas" as a literal knob only
+applies once/if this moves to a container host (Fly, a VPS, k8s), and the stateless
+property above is exactly what makes that move safe when it happens. Either way, the
+thing that stops scaling for free past a point is Postgres itself, not the app — see
+the connection-pooling row above, and note it gets more pressing as concurrency grows,
+not less.
+
+**Caching is deferred, not designed away.** Nothing here caches yet — deliberately,
+so Phase 2's query-cost work stays honest rather than getting masked. When it's
+needed, it plugs in at one of two points without touching the UI: HTTP/CDN caching
+(`Cache-Control`/ISR) on the feed route for anonymous traffic, or a caching
+implementation of `FoodDropRepository` wrapping `PgFoodDropRepository`, the same
+seam the mock→Postgres swap in Phase 2 used. One caveat worth flagging now rather
+than at cache-implementation time: Phase 11 adds auth and per-user wishlists, and a
+personalised response can't sit behind a blanket cache the way an anonymous feed
+can — that's a real design conversation for whenever caching and personalisation
+land in the same phase window, not a solved problem today.
 
 ## 9. Portability — what is and isn't coupled
 

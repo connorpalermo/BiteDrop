@@ -1,4 +1,4 @@
 import type { FoodDropRepository } from '@bitedrop/core';
-import { MockFoodDropRepository } from '@bitedrop/core/mock';
+import { getDb, PgFoodDropRepository } from '@bitedrop/db';
 
-export const repository: FoodDropRepository = new MockFoodDropRepository();
+export const repository: FoodDropRepository = new PgFoodDropRepository(getDb());

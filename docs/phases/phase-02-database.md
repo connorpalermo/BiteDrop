@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | Planned |
+| **Status** | Complete — awaiting review |
 | **Planned** | 2026-09-18 |
-| **Completed** | — |
-| **Commits** | — |
+| **Completed** | 2026-09-19 |
+| **Commits** | — (left in the working tree; commits are the repo owner's) |
 
 **Goal.** The same UI from Phase 1, rendered from Postgres instead of an in-memory
 array — real schema, real migrations, keyset pagination in SQL, full-text search,
@@ -1009,37 +1009,37 @@ terminal.
 
 **Functional**
 
-- [ ] 1 — `npm run db:reset && npm run dev` serves the feed from Postgres with no manual steps.
-- [ ] 2 — The feed renders the same 40 drops in the same order as Phase 1, with every card field populated.
-- [ ] 3 — Infinite scroll pages 12 / 12 / 12 / 4 to the end with no duplicated or skipped items, and `nextCursor` is `null` only on the last page.
-- [ ] 4 — Filters compose OR within a facet and AND across facets; a multi-country drop appears exactly once.
-- [ ] 5 — Search matches name, brand, and description; is case- and diacritic-insensitive; prefix-matches the last token; tolerates a one-character typo.
-- [ ] 6 — Sort toggles newest ↔ trending against the indexed column.
-- [ ] 7 — `/drops/[slug]` renders full detail, all sources, retailers, and related drops; unknown, unpublished, and tombstoned slugs all render 404.
-- [ ] 8 — Sidebar facet counts match Phase 1 and do not change as filters are applied.
+- [x] 1 — `npm run db:reset && npm run dev` serves the feed from Postgres with no manual steps.
+- [x] 2 — The feed renders the same 40 drops in the same order as Phase 1, with every card field populated.
+- [x] 3 — Infinite scroll pages 12 / 12 / 12 / 4 to the end with no duplicated or skipped items, and `nextCursor` is `null` only on the last page.
+- [x] 4 — Filters compose OR within a facet and AND across facets; a multi-country drop appears exactly once.
+- [x] 5 — Search matches name, brand, and description; is case- and diacritic-insensitive; prefix-matches the last token; tolerates a one-character typo.
+- [x] 6 — Sort toggles newest ↔ trending against the indexed column.
+- [x] 7 — `/drops/[slug]` renders full detail, all sources, retailers, and related drops; unknown, unpublished, and tombstoned slugs all render 404.
+- [x] 8 — Sidebar facet counts match Phase 1 and do not change as filters are applied.
 
 **Data layer**
 
-- [ ] 9 — Every table in S4.1 exists; no Phase 11+ table exists.
-- [ ] 10 — Every index in S4.4 exists, and the three feed indexes are partial.
-- [ ] 11 — Migrations are committed `.sql`, apply cleanly to an empty database, and were generated (not pushed).
-- [ ] 12 — The seed is one transaction, is re-runnable, and leaves `source_count` consistent with `food_drop_source` for all 40 drops.
-- [ ] 13 — `list()` ≤ 3 queries, `getBySlug()` ≤ 6, independent of row count — asserted in tests.
-- [ ] 14 — The default feed query and the trending query each use their named index under `enable_seqscan = off`.
+- [x] 9 — Every table in S4.1 exists; no Phase 11+ table exists.
+- [x] 10 — Every index in S4.4 exists, and the three feed indexes are partial.
+- [x] 11 — Migrations are committed `.sql`, apply cleanly to an empty database, and were generated (not pushed).
+- [x] 12 — The seed is one transaction, is re-runnable, and leaves `source_count` consistent with `food_drop_source` for all 40 drops.
+- [x] 13 — `list()` ≤ 3 queries, `getBySlug()` ≤ 6, independent of row count — asserted in tests.
+- [x] 14 — The default feed query and the trending query each use their named index under `enable_seqscan = off`.
 
 **The swap**
 
-- [ ] 15 — `apps/web` diff touches only `lib/repository.ts`, `next.config.ts`, `package.json`.
-- [ ] 16 — `grep -rn "core/mock" apps/web` returns **zero** hits.
-- [ ] 17 — The parity test passes for every query listed in S15, or each divergence is documented in Known limitations with a test asserting the intended behaviour.
-- [ ] 18 — Every `list()` / `getBySlug()` result parses against its Zod schema; dates are strings, not `Date`s.
+- [x] 15 — `apps/web` diff touches only `lib/repository.ts`, `next.config.ts`, `package.json`.
+- [x] 16 — `grep -rn "core/mock" apps/web` returns **zero** hits.
+- [x] 17 — The parity test passes for every query listed in S15, or each divergence is documented in Known limitations with a test asserting the intended behaviour.
+- [x] 18 — Every `list()` / `getBySlug()` result parses against its Zod schema; dates are strings, not `Date`s.
 
 **Code**
 
-- [ ] 19 — No SQL outside `packages/db/src/repositories/`, the seed, and migrations.
-- [ ] 20 — `packages/core` does not import `@bitedrop/db`; `packages/db/src/` imports `@bitedrop/core/mock` only in the seed.
-- [ ] 21 — No `@neondatabase/serverless`, `pg`, `@vercel/*`, or Prisma in any `package.json`.
-- [ ] 22 — `npm run check` passes; `npm test` passes (unit + integration); no `any`, no `@ts-ignore`.
+- [x] 19 — No SQL outside `packages/db/src/repositories/`, the seed, and migrations.
+- [x] 20 — `packages/core` does not import `@bitedrop/db`; `packages/db/src/` imports `@bitedrop/core/mock` only in the seed.
+- [x] 21 — No `@neondatabase/serverless`, `pg`, `@vercel/*`, or Prisma in any `package.json`.
+- [x] 22 — `npm run check` passes; `npm test` passes (unit + integration); no `any`, no `@ts-ignore`.
 
 ### Verification commands
 
@@ -1123,16 +1123,100 @@ Worth a second opinion, specifically:
 
 ## Outcome
 
-*Filled in at completion. Everything below is written after the work, not before.*
-
 ### What changed
+
+**Infrastructure:**
+- `docker-compose.yml` — the single Postgres 17 container on port 5433, per `03-local-dev.md`.
+- `packages/db/init/01-init.sql` — extensions (`pgcrypto`, `pg_trgm`, `unaccent`) plus creation of the separate `bitedrop_test` database.
+- `.env.example` (new) / `.env.local` — `DATABASE_URL`, `TEST_DATABASE_URL`. `apps/web/.env.local` is a symlink to the root file (Next.js only auto-loads env from the app's own directory, not the monorepo root).
+
+**`packages/db`** — new package, `@bitedrop/db`:
+- `src/schema/` — `enums.ts`, `reference.ts` (category/country/retailer), `raw.ts` (source/fetch_run/raw_item), `canonical.ts` (brand/brand_alias/food_drop), `joins.ts` (the four join/audit tables), `customTypes.ts` (`tsvector`, `bytea` — Drizzle has no built-in column type for either). 13 tables total, exactly the set above the "User + agent layer" heading in `02-data-model.md`.
+- `migrations/20260918212602_initial_schema.sql` (+ `meta/`) — generated by `drizzle-kit generate`, committed, reviewed by hand for the S4.4 trio (generated `tsvector` column, `gin_trgm_ops` operator classes, partial-index predicates) before being applied. Renamed from drizzle-kit's default random-words name (`0000_vengeful_christian_walker`) to a timestamp-prefixed one after the fact — safe because the migrator tracks applied migrations by a SHA256 hash of file *content*, not the filename (`_journal.json`'s `tag` field only locates the file on disk); `drizzle.config.ts` now sets `migrations.prefix: 'timestamp'` so every migration after this one is named this way from generation, not renamed after.
+- `src/config.ts`, `src/client.ts` — Zod-validated env loading; `getDb()` stashes the connection on `globalThis` so Next's dev-server hot reload doesn't open a new pool every save.
+- `src/migrate.ts` — the `db:migrate` CLI entrypoint.
+- `src/seed/` — `referenceData.ts`, `brands.ts`, `sources.ts`, `foodDrops.ts`, `index.ts` (one transaction: truncate all 13 tables, then seed in FK order), `run.ts` (CLI entrypoint). Derives every row from `RAW_MOCK_DROPS` — no hand-authored fixtures, no generator, per S7.
+- `src/repositories/` — `rowMappers.ts` (the shared summary-column selector + `SQL row → FoodDropSummary/SourceRef` mappers), `childLoaders.ts` (batched countries/retailers), `feedQuery.ts` (`list()`), `dropDetail.ts` (`getBySlug()`), `facetQuery.ts` (`facets()`), `foodDropRepository.ts` (`PgFoodDropRepository`, implementing the Phase 1 `FoodDropRepository` interface unchanged).
+- `test/` — `testDb.ts` (shared test-DB connection + truncate/reseed helper) plus the eight required suites (S15): `schema.test.ts`, `feedQuery.test.ts`, `search.test.ts`, `facets.test.ts`, `queryCount.test.ts`, `indexUsage.test.ts`, `rowShape.test.ts`, `parity.test.ts`.
+
+**`packages/core`:**
+- `src/normalize.ts` (new) — `normalizeText`, `normalizeName`, `composeSearchText`, `buildTsQuery`, all pure with unit tests (`test/normalize.test.ts`, 13 cases).
+- `src/reference.ts` — `buildFacetCounts` promoted here from the mock repository (S11), so `MockFoodDropRepository` and `PgFoodDropRepository` compute facet zero-filling identically instead of maintaining two copies.
+
+**`apps/web`** — the entire diff, per criterion 15:
+- `lib/repository.ts` — now constructs `PgFoodDropRepository` from `@bitedrop/db` instead of `MockFoodDropRepository`.
+- `next.config.ts` — `transpilePackages` gains `@bitedrop/db`.
+- `package.json` — new `@bitedrop/db` dependency.
+
+**Root config:**
+- `package.json` — `db:up`/`db:down`/`db:migrate`/`db:generate`/`db:seed`/`db:reset`/`db:studio` scripts; `dev` now chains db-up → migrate → seed → `next dev`; `test:unit` runs only the `core` Vitest project.
+- `vitest.config.ts` — split into `core` and `db` Vitest projects; `fileParallelism: false` at the root (this option is silently ignored when nested inside a project's own `test` block — see Decisions) so the `db` project's integration tests never run two files at once against the shared seeded database.
+- `vitest.setup.ts` (new) — loads `.env.local` via `dotenv` so `npm test` works without the caller having sourced it into the shell first; wired into the `db` project only (per-project, unlike `fileParallelism`).
+- `tsconfig.base.json` / `tsconfig.json` — `@bitedrop/db` path aliases, `packages/db/**` added to `include`.
+- `.prettierignore` — `packages/db/migrations` excluded (generated Drizzle snapshot JSON, same treatment as `package-lock.json`).
+
+**`docs/02-data-model.md`** — the four S4.3 schema corrections applied inline (`short_description`, `description NOT NULL`, `source.name UNIQUE`, `search_text` pre-normalisation note), plus the `word_similarity()` correction to the Search section (see Decisions) and a note that the Drizzle schema is now authoritative.
 
 ### How to run it
 
+```bash
+cd ~/dev/BiteDrop
+nvm use                 # Node 22
+npm install              # first time only
+cp .env.example .env.local   # first time only
+npm run dev              # db:up (wait healthy) -> db:migrate -> db:seed -> next dev
+```
+
+- **http://localhost:3000/** — the feed, now reading from Postgres
+- **http://localhost:3000/drops/[slug]** — detail pages, sources resolved via real joins
+- **http://localhost:3000/design** — unchanged from Phase 1
+
+Other useful commands: `npm run db:studio` (Drizzle Studio, browse the seeded data), `npm run db:reset` (drop the volume and start completely clean — verified working from cold as part of this phase), `npm run db:down`.
+
 ### How to test it
+
+```bash
+npm run db:up                 # only needed once per session; npm test needs it running
+npm run check                 # tsc --noEmit && eslint . && prettier --check .
+npm test                      # both Vitest projects: 89 core + 53 db = 142 tests
+npm run test:unit             # core only — passes with Docker stopped entirely (verified)
+npm run build                 # production build against the live Postgres connection
+```
+
+Manual checks worth doing yourself, beyond what's automated: open `/` and `/drops/[slug]` side by side with a `git stash` of Phase 1 (or just trust the parity test, which covers this mechanically); toggle a few filter combinations and confirm the URL and sidebar counts behave exactly as they did in Phase 1; run `npm run db:reset` once to confirm the cold-start path really is one command.
 
 ### Known limitations
 
+- **The literal S16 verification command for criterion 14 (`SET enable_seqscan = off; EXPLAIN ...`) does not reliably demonstrate the property it's checking for, at 40 seeded rows.** All five `food_drop` feed/filter indexes share the identical partial predicate, so with only `enable_seqscan` disabled Postgres treats them as cost-equivalent for satisfying the `WHERE` clause and may pick any of them for a bitmap scan, sorting separately — measured directly, it picked `food_drop_status_idx` for a query ordered by `first_seen_at`. Disabling `enable_bitmapscan` too, and even running a fresh `ANALYZE` first (ruling out stale statistics — the row estimate was off by ~2x before it), still wasn't enough at this scale: a plain Index Scan on the "wrong" index plus an explicit `Sort` node remained cost-competitive. `indexUsage.test.ts` instead drops each index's same-predicate competitors inside a transaction that always rolls back, which is the only method that deterministically isolates "is this specific index usable for this query" from "which cost-tied alternative did the optimizer happen to prefer today." The underlying indexes are correct and used in production-scale conditions; this is purely a small-dataset testing artifact, worth knowing about before anyone re-runs the doc's literal psql snippet and reports a false regression.
+- **`raw_item` rows for the 40 seeded drops point at synthesised, non-existent URLs** (`{publication-base-url}/{drop-slug}-{index}`), not real articles — the mock data's `sourcesFor()` helper returns one shared base URL per publication, which would otherwise violate `raw_item`'s `UNIQUE (source_id, url_hash)`. Flagged in the Plan's Review notes as worth a decision before Phase 4; not resolved here since it's Phase 4's call whether to truncate-and-reingest or reconcile against these placeholders.
+- **Search genuinely changed behaviour from Phase 1, in two ways**, both intentional and both covered by tests rather than papered over:
+  - Phase 1 matched by plain substring (`pickl` mid-word). Postgres matches by FTS token with last-token-prefix (`pick:*`), so a true mid-word fragment no longer matches. `search.test.ts` and `parity.test.ts` both document this explicitly and choose test cases that stay on the ground where the two mechanisms agree.
+  - The typo-tolerant trigram fallback specified in `02-data-model.md` (`similarity(normalized_name, needle) > 0.3`) was measured to almost never fire once a product name has more than one word — see Decisions. Fixed to `word_similarity()` before this phase shipped, and the data-model doc was corrected to match rather than left describing the broken version.
+- **`fetch_run`, `brand_alias`, and `food_drop_merge` are seeded empty.** Correct per S7 — nothing in Phase 2's read path exercises them — but it means this phase provides zero test coverage of those three tables' constraints beyond "the migration created them."
+- **The `trending` sort's tie-break is real but untestable as a strict order across repositories.** Two pairs of mock drops share an identical `trendingScore`. The mock's tiebreak key is `RawMockDrop.id` (hand-authored strings); Postgres's is a random UUID. `parity.test.ts` handles this correctly by comparing tie-groups as sets rather than asserting a specific order for the tied pairs — documented inline there — but it's worth knowing this specific pair of drops will not have a stable relative position if anyone later inspects raw query output directly.
+- **No E2E/browser verification was performed this phase** — all verification is via automated tests, `curl`, and direct Postgres inspection (`psql`, `EXPLAIN`). The rendered feed, filters, and detail pages were checked exclusively over HTTP against the dev server, not by driving a real browser. Phase 1's own known limitation about the mobile Sheet interaction remains open.
+
 ### Decisions made during implementation
 
+**Real bugs found and fixed before they could ship, all caught by writing the test suite S15 required rather than by inspection:**
+- **The `countries` filter's `EXISTS (... = ANY(${countries}))` raw-SQL pattern crashed on the very first real request** (`malformed array literal: "JP"`) — postgres.js does not reliably serialise a JS array interpolated into a raw `sql` template as a Postgres array literal; a one-element array was silently unwrapped to its bare scalar. Found immediately by hand-testing filters against the live dev server (`curl "?country=JP"` → 500), before any test suite existed to catch it. Fixed by rebuilding the clause with drizzle's typed `exists()` + `inArray()` helpers instead of raw `ANY()`, which parameterise correctly. Re-verified the original landmine this clause exists to prevent (a multi-country drop must appear exactly once) still holds with the fix.
+- **The typo-tolerance fallback specified in `02-data-model.md`, `similarity(normalized_name, needle) > 0.3`, essentially never fires.** Measured directly: `similarity('reeses caramel apple cups', 'reeses')` — the *exact*, correctly-spelled brand name — scores 0.28, under the 0.3 threshold, because whole-string trigram similarity is diluted by every word in `normalized_name` the query never claimed to match. This is not a Phase-2-only bug; it was a defect in the data-model doc's own design. Fixed to `word_similarity(needle, normalized_name)`, which scores a short query against its best-matching word-boundary substring (0.67 for "oreoo" against "oreo caramel apple"). Back-ported the fix into `02-data-model.md`'s Search section rather than leaving the doc describing behaviour that doesn't work.
+- **`Vitest`'s `fileParallelism: false` had no effect when nested inside the `db` project's own `test` block** — test files ran concurrently against the one shared `bitedrop_test` database regardless, causing real cross-file interference (a tie-break fixture from one file's mid-run state leaking into another file's row counts, and a stale-vs-live row estimate skew). `fileParallelism` is CLI-facing config that only applies at the root `test` level (or via `--fileParallelism`), not something individual `projects[]` entries can independently control — confirmed by reading Vitest's own source rather than guessing from the docs. Moved to root; the flakiness it was supposed to prevent (and had not) disappeared immediately. `vitest.setup.ts` for env-loading turned out to be the opposite case — it silently did nothing at the root and had to move *into* the `db` project's own config — so these two options are not interchangeable in scope despite looking similar.
+- **`packages/db/test/queryCount.test.ts`'s statement counts were each exactly one higher than the true budget** (4 vs. 3, 2 vs. 1, 7 vs. 6). Cause: postgres.js issues a one-time internal type-discovery query (`select b.oid, b.typarray from pg_catalog.pg_type ...`) the first time a brand-new connection is used, which the test's fresh-connection-per-measurement design was counting as part of the workload. In production this cost is paid once per process lifetime against the long-lived `getDb()` connection, not once per request. Fixed by issuing one throwaway warmup query before starting the statement log on each fresh connection.
+- **`indexUsage.test.ts`'s first two implementations were both non-deterministic at 40 rows** — see Known Limitations above for the full diagnosis. Landed on dropping same-predicate competitor indexes inside a rolled-back transaction as the only approach that isolates the property actually worth asserting.
+- **A duplicate `trendingScore` pair in the seeded data would have made `parity.test.ts`'s `trending`-sort case flaky** had it compared strict slug order — the two repositories' tie-break id spaces (mock string ids vs. Postgres UUIDs) are unrelated. Caught by grepping the mock data for duplicate `trendingScore` values *before* writing the assertion, not by a flaky CI run later. The test compares tie-groups as sets instead.
+- **`db:migrate` only migrated `DATABASE_URL`, never `TEST_DATABASE_URL`** — invisible until the very last verification pass, when a full `docker compose down -v` (part of `db:reset`, which destroys both databases at once) followed by `npm test` failed with `relation "food_drop_merge" does not exist`: the dev database got re-migrated by `db:reset`'s own chain, but `bitedrop_test` was left schemaless since nothing in the standard workflow ever touched it. This would have meant `db:reset` — the exact command meant to leave the repo in a known-good state — silently broke `npm test` immediately afterward. Fixed by having `migrate.ts` apply the same migrations to `TEST_DATABASE_URL` too whenever it's set, then re-verified the full `db:reset` → `npm test` sequence from a destroyed volume to confirm.
+
+**Spec gaps found and fixed in the schema itself, before generating the migration:**
+- **`food_drop_country_lookup_idx` was missing from the first generated migration** — S4.4's own required-index list names it, but the initial `joins.ts` draft didn't declare it in the table's index array. Caught by counting indexes-per-table in `drizzle-kit generate`'s own summary output against the S4.4 checklist before ever applying the migration, exactly the "read the emitted `.sql`" discipline S4.4 asks for. Fixed, migration regenerated (the original was deleted and redone rather than patched, since nothing had consumed it yet).
+- **A copy-paste error in `food_drop_country`'s schema** (`isPrimary: text('is_primary_placeholder')` instead of a boolean column) was caught by `tsc`/review immediately after writing it, before the first `drizzle-kit generate` — not a shipped defect, but the closest miss in the phase.
+
+**Judgment calls on things the spec named but didn't fully specify:**
+- **`raw_item.stage` for seeded rows is `'linked'`**, not `'discovered'` (the schema's default) — these rows already went through the pipeline stage that a real ingested item would still be waiting for, so `'discovered'` would misrepresent them. Not spec-mandated; a reasonable reading of what the enum value means applied to fixture data standing in for already-processed history.
+- **`buildFacetCounts` was promoted from `mock/repository.ts` into `packages/core/src/reference.ts`** rather than duplicated into `packages/db`, per the spec's explicit "Promoting is preferred" note in S11. This is the one place Phase 2 touched a Phase-1-owned file outside the declared S17 exemptions (`next.config.ts`, `package.json`, `lib/repository.ts` in `apps/web`) — justified because the exemption list is scoped to `apps/web`, and this is a `packages/core` refactor that removes duplication `MockFoodDropRepository` itself needed either way.
+- **`packages/db/drizzle.config.ts` resolves `schema`/`out` from its own file location** (`fileURLToPath(import.meta.url)`), not `process.cwd()` — drizzle-kit resolves relative config paths against the caller's cwd by default, which broke the very first `db:generate` run since the npm scripts invoke it from the repo root. `import.meta.dirname` was tried first and returned `undefined` under drizzle-kit's esbuild-based config loading; `fileURLToPath(import.meta.url)` is the more portable form and was used instead.
+- **The seed processes drops one at a time in a loop** (40 iterations × ~4 inserts each) rather than batching all `raw_item`/`food_drop_source` inserts into fewer statements — deliberate, since each drop's own generated `raw_item` ids must be known before its `food_drop_source` rows can reference them, and this is a one-time seed script, not a path with a query-count budget.
+
 ### Recommended next step
+
+**Phase 3 — Deploy.** Per the roadmap's own reasoning (`06-roadmap.md`): deployment problems are cheapest to solve now, while the app is still just a feed and a detail page reading from one Postgres database — before Phase 4 adds an ingestion pipeline to debug simultaneously. Neon's free tier accepts a standard Postgres connection string unchanged from what this phase already built against (invariant 13's `postgres.js` driver was chosen specifically so this is true), so the main net-new work is Vercel project wiring, environment variables in that context, and a CI check that runs `npm run check`/`npm test` against a Postgres service container. Before starting, it's worth deciding how to handle the `bitedrop_test` integration tests in CI specifically, since GitHub Actions' Postgres service containers need their own extension-and-database bootstrapping equivalent to `packages/db/init/01-init.sql`.
