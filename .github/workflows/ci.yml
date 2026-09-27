@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: bitedrop
+          POSTGRES_PASSWORD: bitedrop
+          POSTGRES_DB: bitedrop
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U bitedrop -d bitedrop"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql://bitedrop:bitedrop@localhost:5432/bitedrop
+      TEST_DATABASE_URL: postgresql://bitedrop:bitedrop@localhost:5432/bitedrop_test
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      # The same init script docker-compose mounts locally: three extensions
+      # plus the separate bitedrop_test database. Running the committed file
+      # rather than retyping its SQL here is what stops CI and local from
+      # drifting apart.
+      - name: Bootstrap Postgres
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/init/01-init.sql
+
+      - run: npm run db:migrate
+      - run: npm run check
+      - run: npm test
+      - run: npm run build

@@ -81,6 +81,9 @@ Decide now, because it is cheaper than discovering it in Phase 7:
 Either is defensible. Record the choice in the Outcome section — do not leave it
 implicit.
 
+**Decided 2026-09-27: made public.** Restores the $0-forever assumption
+`04-deployment.md` is built on; unblocks Phase 7's hourly cron without a minutes cap.
+
 **2. Preview database.** Options, simplest first:
 
 - **Share production** (recommended for this phase). The web app cannot write to
@@ -91,6 +94,9 @@ implicit.
 - **A Neon branch per PR.** Genuinely nice, genuinely more setup (Neon's GitHub
   integration or API calls in CI). **Out of scope for this phase** — revisit when
   previews start needing to test migrations.
+
+**Decided 2026-09-27: share production.** Zero extra setup; safe today because
+nothing in `apps/web` writes to Postgres. Revisit at Phase 11.
 
 **3. When migrations run.** Recommended: **manually, from a laptop** (S5), for now.
 There is one migration and it changes rarely. Automate when that stops being true.

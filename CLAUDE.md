@@ -217,6 +217,17 @@ flat data, where splitting adds indirection and buys nothing.
   line count — two arbitrary halves are worse than one long cohesive file.
 - No `utils.ts` or `helpers.ts`. Name the module after what it does.
 
+### Comments
+
+- Default to no comment. Add one only when the WHY is genuinely non-obvious — a
+  hidden constraint, a workaround for a specific bug, behaviour that would surprise
+  a reader.
+- One or two lines, almost always. A comment that needs a paragraph is a sign the
+  code itself should be clearer, or that the explanation belongs in a phase doc's
+  Decisions section, not inline.
+- Never cite a spec section, phase-doc heading, or step number (`S4.3`, "Step 2").
+  Nobody reading the code later has that doc open. State the reason directly instead.
+
 ### Avoiding N+1 queries
 
 Invariant 1 (all SQL in `packages/db/repositories/`) is the precondition; these are

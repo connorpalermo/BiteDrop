@@ -6,7 +6,9 @@ import { loadDbConfig } from './config';
 export type Database = PostgresJsDatabase<typeof schema>;
 
 export function createDb(url: string): Database {
-  const sql = postgres(url);
+  // prepare: false — required for transaction-mode poolers (Neon, PgBouncer),
+  // which hand each query a different backend connection.
+  const sql = postgres(url, { prepare: false });
   return drizzle(sql, { schema });
 }
 
