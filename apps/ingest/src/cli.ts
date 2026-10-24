@@ -96,7 +96,15 @@ async function main() {
   // — opens its own connection and closes it so the process actually exits
   // instead of being kept alive by an open pool (same pattern as
   // migrate.ts/seed/run.ts).
-  const sql = postgres(DATABASE_URL, { max: 1 });
+  //
+  // prepare: false — unlike db:seed (one big transaction), a full ingest
+  // run issues many separate transactions (one per fetch source, one for
+  // filter, one per extract/dedupe candidate). Against a transaction-mode
+  // pooler (Neon's pooled endpoint, PgBouncer) each one can land on a
+  // different backend, so a prepared statement from an earlier transaction
+  // may not exist for a later one — phase-03-deploy.md S3's exact reasoning
+  // for createDb(), which this CLI doesn't otherwise share.
+  const sql = postgres(DATABASE_URL, { max: 1, prepare: false });
   const db = drizzle(sql, { schema });
 
   try {
