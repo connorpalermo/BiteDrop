@@ -15,7 +15,9 @@ type Stage = (typeof VALID_STAGES)[number];
 
 const STAGE_OWNERS: Record<string, string> = {
   normalize: 'folded into --stage=extract, not a separate stage',
-  dedupe: 'Phase 6',
+  dedupe:
+    'folded into --stage=extract — matching runs before a new food_drop would be created, ' +
+    'not as a separate pass (see docs/phases/phase-06-deduplication.md)',
   enrich: 'Phase 9',
   publish:
     'there is no separate publish stage — publishing happens automatically during ' +
@@ -72,7 +74,9 @@ async function runExtract(
   dryRun: boolean,
 ): Promise<boolean> {
   const result = await runExtractStage(db, { sourceSlug: source, dryRun });
-  console.log(`extract seen ${result.seen}, created ${result.created}, failed ${result.failed}`);
+  console.log(
+    `extract seen ${result.seen}, created ${result.created}, linked ${result.linked}, failed ${result.failed}`,
+  );
   for (const failure of result.failures) {
     console.log(`  failed ${failure.rawItemId}: ${failure.message}`);
   }

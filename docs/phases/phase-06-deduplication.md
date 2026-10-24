@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Planned |
+| **Status** | Complete — awaiting review |
 | **Planned** | 2026-10-24 |
-| **Completed** | — |
+| **Completed** | 2026-10-24 |
 | **Commits** | — (left in the working tree; commits are the repo owner's) |
 
 **Goal.** Four sources reporting one product produce **one** `FoodDrop` with
@@ -372,42 +372,42 @@ way Phase 4's findings were added for sources 1/2.
 
 **Dedupe**
 
-- [ ] 1 — Two raw_items (different sources) with an identical canonical URL
+- [x] 1 — Two raw_items (different sources) with an identical canonical URL
       produce one `food_drop` with two `food_drop_source` rows, not two drops.
-- [ ] 2 — Two raw_items with identical `content_hash` but different URLs
+- [x] 2 — Two raw_items with identical `content_hash` but different URLs
       produce one `food_drop`.
-- [ ] 3 — Two raw_items, same resolved brand, identical normalised name,
+- [x] 3 — Two raw_items, same resolved brand, identical normalised name,
       produce one `food_drop` via `name_brand`.
-- [ ] 4 — Two raw_items, same brand, similar name, discovered within 14 days
+- [x] 4 — Two raw_items, same brand, similar name, discovered within 14 days
       produce one `food_drop` via `fuzzy`; the identical pair discovered 20
       days apart produces **two**.
-- [ ] 5 — A match raises `source_count`, advances `last_source_at`, and only
+- [x] 5 — A match raises `source_count`, advances `last_source_at`, and only
       ever raises (never lowers) `confidence`.
-- [ ] 6 — A previously-unpublished drop becomes `published: true` once a
+- [x] 6 — A previously-unpublished drop becomes `published: true` once a
       match raises its confidence over `0.6`.
-- [ ] 7 — A matched drop's `name`/`description`/`status`/other descriptive
+- [x] 7 — A matched drop's `name`/`description`/`status`/other descriptive
       fields are never modified by a link.
-- [ ] 8 — No `brand_id` on the candidate → Layers 3/4 are skipped entirely.
+- [x] 8 — No `brand_id` on the candidate → Layers 3/4 are skipped entirely.
 
 **Sources**
 
-- [ ] 9 — The Takeout and Foodbeast are enabled, fetch successfully, and
+- [x] 9 — The Takeout and Foodbeast are enabled, fetch successfully, and
       items flow through filter/extract/dedupe the same as sources 1/2.
-- [ ] 10 — The Takeout's bare-number-leading listicle titles are rejected
+- [x] 10 — The Takeout's bare-number-leading listicle titles are rejected
       as `recipe_or_listicle`.
 
 **Architecture**
 
-- [ ] 11 — All SQL for this phase lives under `packages/db/src/repositories/`.
-- [ ] 12 — `packages/core` gains no I/O.
-- [ ] 13 — `--stage=dedupe` gives the clarifying message from S5; it is not a
+- [x] 11 — All SQL for this phase lives under `packages/db/src/repositories/`.
+- [x] 12 — `packages/core` gains no I/O.
+- [x] 13 — `--stage=dedupe` gives the clarifying message from S5; it is not a
       separately runnable stage.
-- [ ] 14 — `extractRepository.ts`'s publish check and `dedupeRepository.ts`'s
+- [x] 14 — `extractRepository.ts`'s publish check and `dedupeRepository.ts`'s
       publish check both call the one shared `shouldPublish`.
 
 **Hygiene**
 
-- [ ] 15 — `npm run check && npm test` pass, including the new regression
+- [x] 15 — `npm run check && npm test` pass, including the new regression
       corpus.
 
 ### Verification commands
@@ -458,28 +458,114 @@ Worth a second opinion, specifically:
 
 ## Outcome
 
-*Filled in at completion. Everything below is written after the work, not before.*
-
 ### What changed
 
-—
+- **`packages/core/src/dedupe.ts`** (new) — `DEDUPE_FUZZY_SIMILARITY_THRESHOLD`,
+  `DEDUPE_DATE_WINDOW_DAYS`, `DEDUPE_LINK_CONFIDENCE`, `PUBLISH_CONFIDENCE_THRESHOLD`,
+  `shouldPublish`.
+- **`packages/db/src/repositories/extractRepository.ts`** — `buildFoodDropValues`
+  now calls the shared `shouldPublish` instead of its own private threshold check.
+  `CandidateRawItem` gained a `contentHash` field (needed by Layer 2 — a plan gap,
+  see Decisions).
+- **`packages/db/src/repositories/dedupeRepository.ts`** (new) — `findDedupeMatch`
+  (the four ordered layers) and `linkRawItemToFoodDrop`.
+- **`apps/ingest/src/runExtractStage.ts`** — `extractOne` now checks
+  `findDedupeMatch` before creating; dry-run logs which food_drop/layer it would
+  link to. `ExtractStageResult` gained a `linked` count alongside `created`.
+- **`apps/ingest/src/cli.ts`** — `extract` log line reports `linked`;
+  `--stage=dedupe`'s rejection message now explains the fold-into-extract
+  decision instead of promising a future phase.
+- **`packages/core/src/filter.ts`** — `RECIPE_OR_LISTICLE_PATTERN` broadened
+  with `^\d+\s`/`^the \d+\s` for The Takeout's bare-number listicle titles.
+- **`packages/db/src/seed/sources.ts`** — The Takeout and Foodbeast added to
+  `REAL_FEED_OVERRIDES`, both `enabled: true`.
+- **Tests** — `packages/core/test/dedupe.test.ts` (new),
+  `packages/db/test/dedupeRepository.test.ts` (new, the regression corpus:
+  all 4 layers, the Layer 4 negative date-window case, the brand-gate case,
+  and `linkRawItemToFoodDrop`'s field-preservation/confidence-monotonicity
+  behavior), `apps/ingest/test/runExtractStage.test.ts` (extended with a
+  same-run dedupe case), `packages/core/test/filter.test.ts` (extended with
+  the real Takeout listicle titles). 256 tests pass across 5 projects.
 
 ### How to run it
 
-—
+```bash
+npm run db:reset
+npm run ingest   # now fetches all 4 sources, then filters, extracts, and dedupes
+```
 
 ### How to test it
 
-—
+```bash
+npm run check && npm test   # 256 tests, all green
+npm run build
+```
+
+By hand, against the real local Postgres and all four real live feeds: ran the
+full pipeline end to end and inspected every drop with more than one *real*
+source attached (query in Acceptance criteria's Verification commands,
+filtered to `created_at` from this run — the mock seed's own multi-source
+drops otherwise swamp the same query, since the mock seed reuses the same
+`source` rows).
 
 ### Known limitations
 
-—
+- **A real cross-source match was found live, unprompted, on the very first
+  run** — The Takeout's *"Wingstop's Sour Patch Kids Wicked Punch Wings Are
+  Outrageous And Delicious"* and Foodbeast's independently-written *"Wingstop
+  Just Made Sour Patch Kids-Flavored Chicken Wings"* linked via **Layer 4
+  (fuzzy, confidence 0.7)** — both headlines happened to mention "Sour Patch
+  Kids," which is one of Phase 2's 8 mock brands, so both extractions resolved
+  the same `brand_id` and the fuzzy name comparison did the rest. This is
+  exactly the feature working as designed, and it's also a direct
+  illustration of the brand-gating limitation flagged in the warning banner:
+  it only worked *because* both headlines happened to name a brand already in
+  the small mock list. A genuinely novel brand pair (neither headline naming
+  anything in the 8-brand list) still can't use Layers 3/4 at all.
+- **Layers 1/2 did not fire in this run** — no exact URL or identical
+  syndicated content was observed across the 4 sources live. Expected (these
+  require either literal URL reuse or verbatim content syndication, both
+  comparatively rare across independently-written coverage) and still fully
+  covered by the regression corpus's synthetic cases.
+- Everything else from the Plan's Review notes stands as written and was not
+  revisited: the 14-day window, the single-hop tombstone-follow, and the
+  no-field-reconciliation decision are all unchanged from the plan.
 
 ### Decisions made during implementation
 
-—
+- **`CandidateRawItem` needed a `contentHash` field that the Phase 5-written
+  type didn't have** — found immediately by `tsc`, not discovered at runtime.
+  Phase 5 never needed `raw_item.content_hash` past the fetch stage, so it was
+  never threaded through `listCandidateRawItems`. Added it there, since Layer
+  2 is specifically about comparing content hashes across candidates.
+- **A real bug in `linkRawItemToFoodDrop`'s `GREATEST(...)` SQL, caught by the
+  test suite before it ever reached a real database run**: interpolating a
+  raw JS `Date` object into a Drizzle `sql` template doesn't serialize the
+  way a typed column setter does — postgres.js's bind layer threw
+  `TypeError: The "string" argument must be of type string or an instance of
+  Buffer`. Fixed by interpolating the already-ISO-string `discoveredAt`
+  with an explicit `::timestamptz` cast instead of wrapping it in `new
+  Date(...)` first. Both `packages/db/test/dedupeRepository.test.ts` and
+  `apps/ingest/test/runExtractStage.test.ts`'s new dedupe case caught this
+  independently, which is exactly the "a regression that quietly turns 1
+  query into a crash should fail CI" property the test suite exists for.
+- **The verification query needed a `created_at` recency filter that the
+  Plan's own verification command didn't account for**: the mock seed's
+  `food_drop_source` rows point at the *same* `source` rows real ingestion
+  uses (Phase 4 patched the existing 8 seeded rows rather than creating new
+  ones), so a naive `WHERE source_count > 1` surfaces 30+ mock-seeded
+  multi-source drops before any real one. Not a code change — just a sharper
+  manual-verification query, noted here so the next phase's spot-checks don't
+  rediscover it.
 
 ### Recommended next step
 
-—
+**Phase 7 — Scheduling + observability.** The pipeline now does everything
+the roadmap describes for the core ingestion loop (fetch → filter → extract →
+dedupe) across 4 real sources, manually. The next meaningful gap is that
+nothing runs it — Phase 7 is what turns `npm run ingest` into an hourly
+GitHub Actions job and adds the `/admin/health` page `fetch_run` + `source`
+health columns already support. Before starting, it's worth deciding whether
+to run the pipeline once against Neon (production) now that dedupe exists,
+or wait until Phase 7's scheduling lands — running it manually first would
+finally put real `FoodDrop`s on the live site.

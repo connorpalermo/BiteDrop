@@ -28,9 +28,10 @@ function sourceType(name: string): (typeof source.$inferInsert)['type'] {
 }
 
 /**
- * Real feed endpoints for the two sources Phase 4 actually fetches from.
- * Every other seeded publication keeps its Phase 1/2 mock base URL as a
- * placeholder — real for those comes in Phase 6/10.
+ * Real feed endpoints for the four sources actually fetched so far (Phase 4:
+ * Brand Eating, PR Newswire; Phase 6: The Takeout, Foodbeast). The remaining
+ * 4 seeded publications keep their Phase 1/2 mock base URL as a
+ * placeholder — real for those comes in Phase 10.
  *
  * Brand Eating's `alt=rss` URL 302-redirects to a FeedBurner Atom feed, not
  * RSS (verified live 2026-10-24, docs/phases/phase-04-ingest.md S4) — the
@@ -52,6 +53,20 @@ const REAL_FEED_OVERRIDES: Record<
     url: 'https://www.prnewswire.com/rss/food-beverage-latest-news/food-beverage-latest-news-list.rss',
     homepageUrl: 'https://www.prnewswire.com/',
     trustTier: 1, // official/first-party — docs/05-sources.md
+  },
+  // Re-verified live 2026-10-24 (docs/phases/phase-06-deduplication.md) —
+  // both standard WordPress RSS 2.0, no adapter changes needed.
+  'The Takeout': {
+    slug: 'thetakeout-rss',
+    url: 'https://thetakeout.com/rss',
+    homepageUrl: 'https://www.thetakeout.com/',
+    trustTier: 2,
+  },
+  Foodbeast: {
+    slug: 'foodbeast-rss',
+    url: 'https://foodbeast.com/feed/',
+    homepageUrl: 'https://www.foodbeast.com/',
+    trustTier: 2,
   },
 };
 
@@ -80,13 +95,13 @@ export async function seedSources(db: Database): Promise<Map<string, string>> {
       url: override?.url ?? mockUrl,
       homepageUrl: override?.homepageUrl,
       trustTier: override?.trustTier ?? 2,
-      // Only Brand Eating/PR Newswire have a real feed URL and a working
-      // adapter today. The other 6 are seeded with a mock placeholder URL
-      // (often just the publication's homepage) — `enabled: true` on those
-      // would make `npm run ingest` (no --source filter) actually fetch each
-      // one, discover it isn't a real feed, and burn the full retry/backoff
-      // budget per source for no reason. Flip to true in Phase 6/10 as each
-      // one gets a real feed + adapter.
+      // Only the 4 sources with a REAL_FEED_OVERRIDES entry have a real feed
+      // URL and a working adapter today. The remaining 4 are seeded with a
+      // mock placeholder URL (often just the publication's homepage) —
+      // `enabled: true` on those would make `npm run ingest` (no --source
+      // filter) actually fetch each one, discover it isn't a real feed, and
+      // burn the full retry/backoff budget per source for no reason. Flip to
+      // true in Phase 10 as each one gets a real feed + adapter.
       enabled: override !== undefined,
     };
   });

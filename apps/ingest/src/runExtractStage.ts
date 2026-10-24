@@ -1,6 +1,8 @@
-import { foodDropExtractionSchema } from '@bitedrop/core';
+import { foodDropExtractionSchema, type FoodDropExtraction } from '@bitedrop/core';
 import {
   createFoodDropFromExtraction,
+  findDedupeMatch,
+  linkRawItemToFoodDrop,
   listCandidateRawItems,
   listCategoryIds,
   listKnownBrands,
@@ -20,6 +22,7 @@ const EXTRACTION_PROMPT =
 export interface ExtractStageResult {
   seen: number;
   created: number;
+  linked: number;
   failed: number;
   failures: { rawItemId: string; message: string }[];
 }
@@ -30,14 +33,35 @@ interface ExtractDeps {
   dryRun: boolean;
 }
 
+type ExtractOutcome =
+  | { outcome: 'created' }
+  | { outcome: 'linked'; foodDropId: string; linkMethod: string }
+  | { outcome: 'failed'; message: string };
+
+function resolveLinks(
+  extraction: FoodDropExtraction,
+  deps: ExtractDeps,
+): { brandId: string | null; categoryId: number } {
+  const categoryId = deps.categoryIds.get(extraction.categorySlug) ?? deps.categoryIds.get('other');
+  if (categoryId === undefined) {
+    throw new Error("category 'other' is not seeded — cannot resolve a fallback categoryId");
+  }
+  const brandId = extraction.brandName
+    ? (deps.knownBrands.find((b) => b.name === extraction.brandName)?.id ?? null)
+    : null;
+  return { brandId, categoryId };
+}
+
 /** One candidate, fully isolated: a thrown error or a failed extraction here
  * must never abort the rest of the batch (per-item isolation, the same
- * philosophy as Phase 4's per-source isolation one level down). */
+ * philosophy as Phase 4's per-source isolation one level down). Dedupe is
+ * always computed, even in --dry-run, so a dry run can report which path
+ * it would have taken; only the two write calls are gated on !dryRun. */
 async function extractOne(
   db: Database,
   candidate: CandidateRawItem,
   deps: ExtractDeps,
-): Promise<{ outcome: 'created' | 'failed'; message?: string }> {
+): Promise<ExtractOutcome> {
   try {
     const input: ExtractionInput = {
       title: candidate.title,
@@ -59,14 +83,13 @@ async function extractOne(
       return { outcome: 'failed', message: result.error.message };
     }
 
-    const categoryId =
-      deps.categoryIds.get(result.value.categorySlug) ?? deps.categoryIds.get('other');
-    if (categoryId === undefined) {
-      throw new Error("category 'other' is not seeded — cannot resolve a fallback categoryId");
+    const { brandId, categoryId } = resolveLinks(result.value, deps);
+
+    const match = await findDedupeMatch(db, candidate, result.value, brandId);
+    if (match) {
+      if (!deps.dryRun) await linkRawItemToFoodDrop(db, candidate, match, result.value);
+      return { outcome: 'linked', foodDropId: match.foodDropId, linkMethod: match.linkMethod };
     }
-    const brandId = result.value.brandName
-      ? (deps.knownBrands.find((b) => b.name === result.value.brandName)?.id ?? null)
-      : null;
 
     if (!deps.dryRun) {
       await createFoodDropFromExtraction(db, candidate, result.value, { brandId, categoryId });
@@ -92,13 +115,23 @@ export async function runExtractStage(
   };
 
   let created = 0;
+  let linked = 0;
   const failures: { rawItemId: string; message: string }[] = [];
 
   for (const candidate of candidates) {
     const result = await extractOne(db, candidate, deps);
     if (result.outcome === 'created') created++;
-    else failures.push({ rawItemId: candidate.id, message: result.message ?? 'unknown error' });
+    else if (result.outcome === 'linked') {
+      linked++;
+      if (options.dryRun) {
+        console.log(
+          `[dry-run] ${candidate.id} would link to food_drop ${result.foodDropId} via ${result.linkMethod}`,
+        );
+      }
+    } else {
+      failures.push({ rawItemId: candidate.id, message: result.message });
+    }
   }
 
-  return { seen: candidates.length, created, failed: failures.length, failures };
+  return { seen: candidates.length, created, linked, failed: failures.length, failures };
 }

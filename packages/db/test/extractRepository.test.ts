@@ -90,6 +90,7 @@ describe('extractRepository', () => {
       bodyText: null,
       discoveredAt: candidateRow!.discoveredAt.toISOString(),
       urlHash: candidateRow!.urlHash,
+      contentHash: null,
       sourceId: brandEating!.id,
       sourceTrustTier: 2,
     };
@@ -137,6 +138,7 @@ describe('extractRepository', () => {
         bodyText: null,
         discoveredAt: row!.discoveredAt.toISOString(),
         urlHash: row!.urlHash,
+        contentHash: null,
         sourceId: brandEating!.id,
         sourceTrustTier: 2,
       };

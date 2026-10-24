@@ -29,4 +29,9 @@ export {
   type FoodDropLink,
   type KnownBrand,
 } from './repositories/extractRepository';
+export {
+  findDedupeMatch,
+  linkRawItemToFoodDrop,
+  type DedupeMatch,
+} from './repositories/dedupeRepository';
 export * as schema from './schema/index';

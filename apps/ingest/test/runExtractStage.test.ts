@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { runExtractStage } from '../src/runExtractStage';
 import { getTestDb, resetTestDb } from './testDb';
 
-const { foodDrop, rawItem, source } = schema;
+const { foodDrop, foodDropSource, rawItem, source } = schema;
 
 function hashUrl(url: string): Buffer {
   return createHash('sha256').update(url).digest();
@@ -76,6 +76,35 @@ describe('runExtractStage', () => {
 
     const [row] = await getTestDb().select().from(rawItem).where(eq(rawItem.id, id));
     expect(row!.stage).toBe('candidate');
+  });
+
+  it('dedupe: two candidates with the same canonical URL link to one food_drop, not two', async () => {
+    await insertCandidate(
+      'brandeating-rss',
+      'https://example.com/shared-article',
+      'New Spicy Sauce Launches Nationwide',
+    );
+    await insertCandidate(
+      'prnewswire-rss',
+      'https://example.com/shared-article',
+      'New Spicy Sauce Launches Nationwide',
+    );
+
+    const result = await runExtractStage(getTestDb(), { dryRun: false });
+    expect(result.created).toBe(1);
+    expect(result.linked).toBe(1);
+
+    const drops = await getTestDb()
+      .select()
+      .from(foodDrop)
+      .where(eq(foodDrop.name, 'New Spicy Sauce Launches Nationwide'));
+    expect(drops).toHaveLength(1);
+
+    const sources = await getTestDb()
+      .select()
+      .from(foodDropSource)
+      .where(eq(foodDropSource.foodDropId, drops[0]!.id));
+    expect(sources).toHaveLength(2);
   });
 
   it('--source scopes to one source only', async () => {

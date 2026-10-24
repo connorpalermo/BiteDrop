@@ -1,4 +1,9 @@
-import { composeSearchText, normalizeName, type FoodDropExtraction } from '@bitedrop/core';
+import {
+  composeSearchText,
+  normalizeName,
+  shouldPublish,
+  type FoodDropExtraction,
+} from '@bitedrop/core';
 import { and, eq, sql } from 'drizzle-orm';
 import type { Database } from '../client';
 import { brand, category, foodDrop, foodDropSource, rawItem, source } from '../schema/index';
@@ -10,6 +15,7 @@ export interface CandidateRawItem {
   bodyText: string | null;
   discoveredAt: string; // ISO
   urlHash: Buffer;
+  contentHash: Buffer | null;
   sourceId: string;
   sourceTrustTier: number;
 }
@@ -29,6 +35,7 @@ export async function listCandidateRawItems(
       bodyText: rawItem.bodyText,
       discoveredAt: rawItem.discoveredAt,
       urlHash: rawItem.urlHash,
+      contentHash: rawItem.contentHash,
       sourceId: rawItem.sourceId,
       sourceTrustTier: source.trustTier,
     })
@@ -65,8 +72,6 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-const PUBLISH_CONFIDENCE_THRESHOLD = 0.6;
-
 function buildFoodDropValues(
   candidate: CandidateRawItem,
   extraction: FoodDropExtraction,
@@ -88,8 +93,7 @@ function buildFoodDropValues(
     priceCents: extraction.priceCents,
     priceCurrency: extraction.priceCurrency,
     confidence: extraction.confidence,
-    published:
-      extraction.status !== 'rumored' && extraction.confidence >= PUBLISH_CONFIDENCE_THRESHOLD,
+    published: shouldPublish(extraction.status, extraction.confidence),
     sourceCount: 1,
     firstSeenAt: new Date(candidate.discoveredAt),
     lastSourceAt: new Date(candidate.discoveredAt),

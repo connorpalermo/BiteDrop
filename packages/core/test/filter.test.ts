@@ -63,6 +63,21 @@ describe('applyFilter', () => {
     );
   });
 
+  it('rejects the real Takeout listicle titles that slipped past the original \\d+ (best|worst) pattern', () => {
+    const titles = [
+      '12 Best New Costco Kirkland Signature Finds Of 2026 (So Far)',
+      'The 12 Hands-Down Best New Chocolatey Candies Of 2026 (So Far)',
+    ];
+    for (const title of titles) {
+      expect(applyFilter(item({ title })).reason).toBe('recipe_or_listicle');
+    }
+  });
+
+  it('"7-Eleven ..." is not caught by the bare-number listicle rule — the digit is not followed by whitespace', () => {
+    const verdict = applyFilter(item({ title: '7-Eleven Launches New Taquito Flavor' }));
+    expect(verdict.reason).not.toBe('recipe_or_listicle');
+  });
+
   it('rejects a review/opinion title', () => {
     expect(applyFilter(item({ title: 'Review: We Tried the New Spicy Sauce' })).reason).toBe(
       'review_or_opinion',

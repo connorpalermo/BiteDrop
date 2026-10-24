@@ -29,7 +29,17 @@ const FOOD_SIGNAL_PATTERN =
 const LEGAL_OR_LAWSUIT_PATTERN =
   /class action|securities fraud|shareholder|investors (have|face)|law firm|lawsuit|\bllp\b|deadline:/i;
 const SPONSORED_FILLER_PATTERN = /^in hellonation,|sponsored content|advertisement:/i;
-const RECIPE_OR_LISTICLE_PATTERN = /\brecipe\b|how to make|\btop \d+\b|ranked:|\d+ (best|worst)/i;
+/**
+ * `^\d+\s`/`^the \d+\s` catch a title that simply starts with a number —
+ * the strongest, lowest-risk listicle signal there is (real product
+ * announcements essentially never open with a bare digit). Added after
+ * The Takeout's real feed showed titles like "12 Best New Costco Kirkland
+ * Signature Finds Of 2026" and "The 12 Hands-Down Best New Chocolatey
+ * Candies Of 2026" slipping past `\d+ (best|worst)`, which requires the
+ * number and best/worst to be adjacent.
+ */
+const RECIPE_OR_LISTICLE_PATTERN =
+  /\brecipe\b|how to make|\btop \d+\b|ranked:|\d+ (best|worst)|^\d+\s|^the \d+\s/i;
 const REVIEW_OR_OPINION_PATTERN = /\breview\b|we tried|taste test|our verdict|hands-on/i;
 
 function isTooOld(item: FilterableItem, now: Date): boolean {

@@ -113,3 +113,27 @@ later phase that reads `raw_item`:
   is exactly the condition Phase 5's filter stage exists to handle — treat a
   mostly-noise `raw_item` table as confirmation the pipeline is working, not as
   a broken adapter.
+
+## Phase 6 findings (live, 2026-10-24)
+
+Sources 3 and 4 — **The Takeout** and **Foodbeast** — are now fetched, per
+this doc's own phase plan above. Both re-verified live before implementation:
+
+- **Both are standard WordPress RSS 2.0** — no Atom surprise this time, no
+  adapter changes needed. `thetakeout.com/rss` 301-redirects to
+  `www.thetakeout.com/feed/`; `foodbeast.com/feed/` redirects to the `www`
+  host. Both resolve with Node's `fetch()` with no code change.
+- **The Takeout's real sample skewed heavily listicle**, confirming this
+  doc's "Medium" precision rating: *"12 Best New Costco Kirkland Signature
+  Finds Of 2026"*, *"The 12 Hands-Down Best New Chocolatey Candies Of 2026"*.
+  Neither matched Phase 5's original `recipe_or_listicle` regex (which
+  required the number and "best"/"worst" to be adjacent) — fixed in
+  `docs/phases/phase-06-deduplication.md` S7 by also rejecting any title that
+  simply starts with a number.
+- **Dedupe's Layer 4 (fuzzy brand+name match) found a real cross-source
+  duplicate on the first live run**, unprompted: The Takeout's *"Wingstop's
+  Sour Patch Kids Wicked Punch Wings Are Outrageous And Delicious"* and
+  Foodbeast's *"Wingstop Just Made Sour Patch Kids-Flavored Chicken Wings"*
+  — two independently-written headlines about the same real product —
+  correctly linked into one `FoodDrop`. See
+  `docs/phases/phase-06-deduplication.md` → Outcome for the full record.

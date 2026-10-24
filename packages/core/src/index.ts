@@ -9,3 +9,4 @@ export * from './source';
 export * from './filter';
 export * from './extract';
 export * from './llm';
+export * from './dedupe';
