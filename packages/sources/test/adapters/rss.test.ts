@@ -148,3 +148,32 @@ describe('rssAdapter — body length cap', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('rssAdapter — HTML entities in title/author', () => {
+  it('decodes numeric entities in RSS titles and authors — WordPress feeds routinely emit these', async () => {
+    const rss = `<?xml version="1.0"?><rss version="2.0"><channel>
+      <item>
+        <title>Dunkin&#8217;s New Menu Is Here</title>
+        <link>https://example.com/entity-title</link>
+        <dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Domino&#39;s Team</dc:creator>
+      </item>
+    </channel></rss>`;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(rss, { status: 200 })));
+    const result = await rssAdapter.fetch(sourceFixture(), CTX);
+    expect(result.items[0]!.title).toBe('Dunkin’s New Menu Is Here');
+    expect(result.items[0]!.author).toBe("Domino's Team");
+    vi.unstubAllGlobals();
+  });
+
+  it('decodes numeric entities in Atom titles', async () => {
+    const atom = `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">
+      <entry><title>McDonald&#8217;s Is Back</title>
+      <link rel="alternate" href="https://example.com/atom-entity-title"/>
+      <id>tag:example.com,3</id></entry>
+    </feed>`;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(atom, { status: 200 })));
+    const result = await rssAdapter.fetch(sourceFixture(), CTX);
+    expect(result.items[0]!.title).toBe('McDonald’s Is Back');
+    vi.unstubAllGlobals();
+  });
+});

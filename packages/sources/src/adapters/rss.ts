@@ -72,6 +72,13 @@ function textOf(node: unknown): string | null {
   return null;
 }
 
+/** Decodes HTML entities (WordPress feeds routinely emit titles/authors as
+ * e.g. "Dunkin&#8217;" or "Domino&#39;s" — numeric entities, not actual HTML
+ * tags) without the 500/40k truncation excerpt/bodyText get. */
+function cleanText(raw: string | null): string | null {
+  return raw ? stripHtml(raw) : null;
+}
+
 function parseDate(value: string | null): string | null {
   if (!value) return null;
   const parsed = new Date(value);
@@ -100,8 +107,8 @@ function mapRssItem(item: RssItem): DiscoveredItem {
 
   return {
     url: textOf(item.link) ?? textOf(item.guid) ?? '',
-    title: textOf(item.title),
-    author: textOf(item.author) ?? textOf(item['dc:creator']),
+    title: cleanText(textOf(item.title)),
+    author: cleanText(textOf(item.author) ?? textOf(item['dc:creator'])),
     publishedAt: parseDate(textOf(item.pubDate)),
     excerpt: rawExcerpt ? truncate(stripHtml(rawExcerpt), 500) : null,
     bodyText: rawBody ? truncate(stripHtml(rawBody), 40_000) : null,
@@ -117,8 +124,8 @@ function mapAtomEntry(entry: AtomEntry): DiscoveredItem {
 
   return {
     url: pickAtomLink(entry.link) ?? textOf(entry.id) ?? '',
-    title: textOf(entry.title),
-    author: textOf(authorName),
+    title: cleanText(textOf(entry.title)),
+    author: cleanText(textOf(authorName)),
     publishedAt: parseDate(textOf(entry.published) ?? textOf(entry.updated)),
     excerpt: rawExcerpt ? truncate(stripHtml(rawExcerpt), 500) : null,
     bodyText: rawBody ? truncate(stripHtml(rawBody), 40_000) : null,
