@@ -36,7 +36,7 @@ Phase work is left in the working tree for the repo owner to commit as they see 
 | 2 | Database + real reads | **Complete — awaiting review** | [phase-02](./phase-02-database.md) |
 | 3 | Deploy | **Complete — awaiting review** | [phase-03](./phase-03-deploy.md) |
 | 4 | Ingest CLI + first adapters | **Complete — awaiting review** | [phase-04](./phase-04-ingest.md) |
-| 5 | Filter + rule-based extraction | Not started | — |
+| 5 | Filter + rule-based extraction | Planned — awaiting review | [phase-05](./phase-05-filter-extract.md) |
 | 6 | Deduplication | Not started | — |
 | 7 | Scheduling + observability | Not started | — |
 | 8 | LLM extraction | Not started | — |
