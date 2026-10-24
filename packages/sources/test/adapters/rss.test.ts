@@ -177,3 +177,56 @@ describe('rssAdapter — HTML entities in title/author', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('rssAdapter — image detection', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('falls back to media:content when there is no enclosure — PR Newswire has no <enclosure> at all', async () => {
+    const rss = `<?xml version="1.0"?><rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel>
+      <item>
+        <title>No Enclosure, Has Media Content</title>
+        <link>https://example.com/media-content</link>
+        <media:content url="https://example.com/photo.jpg" type="image/jpeg" width="144"/>
+      </item>
+    </channel></rss>`;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(rss, { status: 200 })));
+    const result = await rssAdapter.fetch(sourceFixture(), CTX);
+    expect(result.items[0]!.imageUrl).toBe('https://example.com/photo.jpg');
+  });
+
+  it('prefers enclosure over media:content when both are present', async () => {
+    const rss = `<?xml version="1.0"?><rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/"><channel>
+      <item>
+        <title>Both Present</title>
+        <link>https://example.com/both</link>
+        <enclosure url="https://example.com/enclosure.jpg" type="image/jpeg"/>
+        <media:content url="https://example.com/media.jpg" type="image/jpeg"/>
+      </item>
+    </channel></rss>`;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(rss, { status: 200 })));
+    const result = await rssAdapter.fetch(sourceFixture(), CTX);
+    expect(result.items[0]!.imageUrl).toBe('https://example.com/enclosure.jpg');
+  });
+
+  it('falls back to media:thumbnail in Atom entries — Brand Eating has no enclosure/media:content at all', async () => {
+    const atom = `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+      <entry><title>Atom With Thumbnail</title>
+      <link rel="alternate" href="https://example.com/atom-thumb"/>
+      <id>tag:example.com,4</id>
+      <media:thumbnail url="https://example.com/thumb.jpg" height="72" width="72"/>
+      </entry>
+    </feed>`;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(atom, { status: 200 })));
+    const result = await rssAdapter.fetch(sourceFixture(), CTX);
+    expect(result.items[0]!.imageUrl).toBe('https://example.com/thumb.jpg');
+  });
+
+  it('is null when no image mechanism is present at all', async () => {
+    const rss = `<?xml version="1.0"?><rss version="2.0"><channel>
+      <item><title>No Image</title><link>https://example.com/no-image</link></item>
+    </channel></rss>`;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(rss, { status: 200 })));
+    const result = await rssAdapter.fetch(sourceFixture(), CTX);
+    expect(result.items[0]!.imageUrl).toBeNull();
+  });
+});

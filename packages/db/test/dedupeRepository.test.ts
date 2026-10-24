@@ -67,6 +67,7 @@ async function insertCandidate(input: CandidateInput) {
     discoveredAt: discoveredAt.toISOString(),
     urlHash: row!.urlHash,
     contentHash: row!.contentHash,
+    imageUrl: null,
     sourceId: input.sourceId,
     sourceTrustTier: 2,
   };

@@ -17,6 +17,15 @@ interface AtomLink {
   '@_href'?: string;
 }
 
+interface MediaContent {
+  '@_url'?: string;
+  '@_type'?: string;
+}
+
+interface MediaThumbnail {
+  '@_url'?: string;
+}
+
 interface RssItem {
   title?: unknown;
   link?: unknown;
@@ -27,6 +36,8 @@ interface RssItem {
   description?: unknown;
   'content:encoded'?: unknown;
   enclosure?: { '@_url'?: string; '@_type'?: string };
+  'media:content'?: MediaContent | MediaContent[];
+  'media:thumbnail'?: MediaThumbnail | MediaThumbnail[];
 }
 
 interface AtomEntry {
@@ -38,6 +49,7 @@ interface AtomEntry {
   updated?: unknown;
   summary?: unknown;
   content?: unknown;
+  'media:thumbnail'?: MediaThumbnail | MediaThumbnail[];
 }
 
 interface RssDoc {
@@ -98,12 +110,33 @@ function pickAtomLink(linkField: AtomLink | AtomLink[] | undefined): string | nu
   return alternate?.['@_href'] ?? links[0]?.['@_href'] ?? null;
 }
 
+/**
+ * Feeds advertise an item's image through any of three different, non-
+ * universal mechanisms: the RSS 2.0 standard `<enclosure>` (The Takeout),
+ * the Yahoo Media RSS `<media:content>` (PR Newswire — confirmed live
+ * 2026-10-24; it has no `<enclosure>` at all), or `<media:thumbnail>`
+ * (Brand Eating's Atom entries, and a fallback The Takeout also includes).
+ * Checked in that order; the first valid image wins.
+ */
+function pickImageUrl(fields: {
+  enclosure?: { '@_url'?: string; '@_type'?: string };
+  mediaContent?: MediaContent | MediaContent[];
+  mediaThumbnail?: MediaThumbnail | MediaThumbnail[];
+}): string | null {
+  const enclosure = fields.enclosure;
+  if (enclosure?.['@_type']?.startsWith('image/') && enclosure['@_url']) return enclosure['@_url'];
+
+  const content = toArray(fields.mediaContent).find(
+    (c) => !c['@_type'] || c['@_type'].startsWith('image/'),
+  );
+  if (content?.['@_url']) return content['@_url'];
+
+  return toArray(fields.mediaThumbnail)[0]?.['@_url'] ?? null;
+}
+
 function mapRssItem(item: RssItem): DiscoveredItem {
   const rawExcerpt = textOf(item.description);
   const rawBody = textOf(item['content:encoded']) ?? rawExcerpt;
-  const enclosure = item.enclosure;
-  const imageUrl =
-    enclosure?.['@_type']?.startsWith('image/') && enclosure['@_url'] ? enclosure['@_url'] : null;
 
   return {
     url: textOf(item.link) ?? textOf(item.guid) ?? '',
@@ -112,7 +145,11 @@ function mapRssItem(item: RssItem): DiscoveredItem {
     publishedAt: parseDate(textOf(item.pubDate)),
     excerpt: rawExcerpt ? truncate(stripHtml(rawExcerpt), 500) : null,
     bodyText: rawBody ? truncate(stripHtml(rawBody), 40_000) : null,
-    imageUrl,
+    imageUrl: pickImageUrl({
+      enclosure: item.enclosure,
+      mediaContent: item['media:content'],
+      mediaThumbnail: item['media:thumbnail'],
+    }),
     rawPayload: item,
   };
 }
@@ -129,7 +166,7 @@ function mapAtomEntry(entry: AtomEntry): DiscoveredItem {
     publishedAt: parseDate(textOf(entry.published) ?? textOf(entry.updated)),
     excerpt: rawExcerpt ? truncate(stripHtml(rawExcerpt), 500) : null,
     bodyText: rawBody ? truncate(stripHtml(rawBody), 40_000) : null,
-    imageUrl: null,
+    imageUrl: pickImageUrl({ mediaThumbnail: entry['media:thumbnail'] }),
     rawPayload: entry,
   };
 }

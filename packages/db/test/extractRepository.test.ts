@@ -91,6 +91,7 @@ describe('extractRepository', () => {
       discoveredAt: candidateRow!.discoveredAt.toISOString(),
       urlHash: candidateRow!.urlHash,
       contentHash: null,
+      imageUrl: null,
       sourceId: brandEating!.id,
       sourceTrustTier: 2,
     };
@@ -116,6 +117,45 @@ describe('extractRepository', () => {
     expect(linkedRawItem!.stage).toBe('linked');
   });
 
+  it('threads the candidate raw_item.image_url through to food_drop.image_url', async () => {
+    const db = getTestDb();
+    const [brandEating] = await listIngestSources(db, 'brandeating-rss');
+    const categoryIds = await listCategoryIds(db);
+    const url = 'https://example.com/create-with-image';
+    const [candidateRow] = await db
+      .insert(rawItem)
+      .values({
+        sourceId: brandEating!.id,
+        url,
+        urlHash: hashUrl(url),
+        imageUrl: 'https://example.com/photo.jpg',
+        discoveredAt: new Date('2026-10-24T00:00:00.000Z'),
+        stage: 'candidate',
+      })
+      .returning({ id: rawItem.id, urlHash: rawItem.urlHash, discoveredAt: rawItem.discoveredAt });
+
+    const candidate = {
+      id: candidateRow!.id,
+      title: null,
+      excerpt: null,
+      bodyText: null,
+      discoveredAt: candidateRow!.discoveredAt.toISOString(),
+      urlHash: candidateRow!.urlHash,
+      contentHash: null,
+      imageUrl: 'https://example.com/photo.jpg',
+      sourceId: brandEating!.id,
+      sourceTrustTier: 2,
+    };
+
+    await createFoodDropFromExtraction(db, candidate, extraction({ name: 'Drop With Image' }), {
+      brandId: null,
+      categoryId: categoryIds.get('other')!,
+    });
+
+    const [drop] = await db.select().from(foodDrop).where(eq(foodDrop.name, 'Drop With Image'));
+    expect(drop!.imageUrl).toBe('https://example.com/photo.jpg');
+  });
+
   it('published is true only when status is not rumored and confidence >= 0.6', async () => {
     const db = getTestDb();
     const [brandEating] = await listIngestSources(db, 'brandeating-rss');
@@ -139,6 +179,7 @@ describe('extractRepository', () => {
         discoveredAt: row!.discoveredAt.toISOString(),
         urlHash: row!.urlHash,
         contentHash: null,
+        imageUrl: null,
         sourceId: brandEating!.id,
         sourceTrustTier: 2,
       };

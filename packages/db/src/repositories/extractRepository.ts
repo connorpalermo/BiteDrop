@@ -16,6 +16,7 @@ export interface CandidateRawItem {
   discoveredAt: string; // ISO
   urlHash: Buffer;
   contentHash: Buffer | null;
+  imageUrl: string | null;
   sourceId: string;
   sourceTrustTier: number;
 }
@@ -36,6 +37,7 @@ export async function listCandidateRawItems(
       discoveredAt: rawItem.discoveredAt,
       urlHash: rawItem.urlHash,
       contentHash: rawItem.contentHash,
+      imageUrl: rawItem.imageUrl,
       sourceId: rawItem.sourceId,
       sourceTrustTier: source.trustTier,
     })
@@ -87,6 +89,7 @@ function buildFoodDropValues(
     subcategory: extraction.subcategory,
     shortDescription: extraction.shortDescription,
     description: extraction.description,
+    imageUrl: candidate.imageUrl,
     status: extraction.status,
     isLimitedTime: extraction.isLimitedTime,
     releaseDate: extraction.releaseDate,
