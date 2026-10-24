@@ -63,3 +63,23 @@ export function buildTsQuery(search: string): string | null {
   const lastIndex = tokens.length - 1;
   return tokens.map((token, i) => (i === lastIndex ? `${token}:*` : token)).join(' & ');
 }
+
+/**
+ * Canonicalises a URL for hashing: strips the fragment, drops every query
+ * param starting with `utm_`, and sorts the remaining params by key — so the
+ * same article reached via two different tracking links still hashes the
+ * same (02-data-model.md's raw_item.url comment).
+ */
+export function canonicalizeUrl(rawUrl: string): string {
+  const url = new URL(rawUrl);
+  url.hash = '';
+
+  const kept = Array.from(url.searchParams.entries())
+    .filter(([key]) => !key.toLowerCase().startsWith('utm_'))
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  url.search = '';
+  for (const [key, value] of kept) url.searchParams.append(key, value);
+
+  return url.toString();
+}

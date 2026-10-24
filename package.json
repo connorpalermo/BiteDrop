@@ -18,6 +18,7 @@
     "db:seed": "tsx packages/db/src/seed/run.ts",
     "db:reset": "docker compose down -v && npm run db:up && npm run db:migrate && npm run db:seed",
     "db:studio": "drizzle-kit studio --config packages/db/drizzle.config.ts",
+    "ingest": "tsx apps/ingest/src/cli.ts",
     "test": "vitest run",
     "test:unit": "vitest run --project core",
     "check": "tsc --noEmit && eslint . && prettier --check ."

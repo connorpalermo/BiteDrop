@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Planned |
+| **Status** | Complete — awaiting review |
 | **Planned** | 2026-10-24 |
-| **Completed** | — |
+| **Completed** | 2026-10-24 |
 | **Commits** | — (left in the working tree; commits are the repo owner's) |
 
 **Goal.** `npm run ingest` populates `raw_item` from 2 real, live RSS/Atom feeds —
@@ -602,50 +602,50 @@ but **a fake `SourceAdapter`**, never a real network call (CLAUDE.md → Testing
 
 **Fetch and parse**
 
-- [ ] 1 — `npm run ingest` fetches both Brand Eating and PR Newswire and inserts
+- [x] 1 — `npm run ingest` fetches both Brand Eating and PR Newswire and inserts
       rows into `raw_item`.
-- [ ] 2 — The Atom-link landmine test (S11) passes: the article URL recorded is
+- [x] 2 — The Atom-link landmine test (S11) passes: the article URL recorded is
       the `rel="alternate"` link, never the comments/self/edit link.
-- [ ] 3 — `raw_item.body_text` is never raw HTML and never exceeds 40,000 chars
+- [x] 3 — `raw_item.body_text` is never raw HTML and never exceeds 40,000 chars
       (invariant 5).
-- [ ] 4 — `raw_item.url` is canonicalised (no `utm_*`, sorted query, no fragment)
+- [x] 4 — `raw_item.url` is canonicalised (no `utm_*`, sorted query, no fragment)
       before `url_hash` is computed from it.
 
 **Idempotency and isolation**
 
-- [ ] 5 — Running `npm run ingest` twice in a row produces `itemsNew = 0` on the
+- [x] 5 — Running `npm run ingest` twice in a row produces `itemsNew = 0` on the
       second run for both sources (invariant 8).
-- [ ] 6 — A thrown adapter error for one source does not stop the other source
+- [x] 6 — A thrown adapter error for one source does not stop the other source
       from being fetched and inserted (invariant 7), and is visible as a
       `fetch_run` row with `status='error'`.
-- [ ] 7 — `source.consecutive_failures` increments on a failed fetch and resets
+- [x] 7 — `source.consecutive_failures` increments on a failed fetch and resets
       to 0 on a successful one.
 
 **Protocol correctness**
 
-- [ ] 8 — `robots.txt` is checked before every real feed fetch, fails open on a
+- [x] 8 — `robots.txt` is checked before every real feed fetch, fails open on a
       missing/unreachable file, and blocks a path a matching `Disallow` covers.
-- [ ] 9 — A conditional GET is sent on every fetch once `http_etag` or
+- [x] 9 — A conditional GET is sent on every fetch once `http_etag` or
       `http_last_modified` is set from a prior run; a 304 response records
       `fetch_status='skipped_not_modified'` and inserts nothing.
-- [ ] 10 — Requests identify as `BiteDropBot/0.1 (+https://bite-drop.vercel.app)`.
+- [x] 10 — Requests identify as `BiteDropBot/0.1 (+https://bite-drop.vercel.app)`.
 
 **Architecture**
 
-- [ ] 11 — All SQL for this phase lives under `packages/db/src/repositories/`
+- [x] 11 — All SQL for this phase lives under `packages/db/src/repositories/`
       (invariant 1), checked by grep.
-- [ ] 12 — `packages/core` gains no I/O (invariant 4): `source.ts`'s new types
+- [x] 12 — `packages/core` gains no I/O (invariant 4): `source.ts`'s new types
       have no function bodies beyond the one pure `canonicalizeUrl`.
-- [ ] 13 — `SourceAdapter`'s interface lives in `packages/core`; its only
+- [x] 13 — `SourceAdapter`'s interface lives in `packages/core`; its only
       implementation lives in `packages/sources`.
-- [ ] 14 — `--dry-run` writes nothing to `raw_item`, `fetch_run`, or `source`.
-- [ ] 15 — `--stage=<anything but fetch>` fails loudly rather than no-op-ing.
+- [x] 14 — `--dry-run` writes nothing to `raw_item`, `fetch_run`, or `source`.
+- [x] 15 — `--stage=<anything but fetch>` fails loudly rather than no-op-ing.
 
 **Hygiene**
 
-- [ ] 16 — `npm run check && npm test` pass, including the two new fixture files
+- [x] 16 — `npm run check && npm test` pass, including the two new fixture files
       committed (no network in CI).
-- [ ] 17 — `IngestSourceType`'s members match `sourceTypeEnum` in the schema, in
+- [x] 17 — `IngestSourceType`'s members match `sourceTypeEnum` in the schema, in
       order, asserted by a test.
 
 ### Verification commands
@@ -694,28 +694,146 @@ Worth a second opinion, specifically:
 
 ## Outcome
 
-*Filled in at completion. Everything below is written after the work, not before.*
-
 ### What changed
 
-—
+- **`packages/core/src/source.ts`** (new) — `IngestSourceType`, `IngestSource`,
+  `DiscoveredItem`, `FetchContext`, `FetchResult`, `SourceAdapter`. Pure types,
+  no I/O (invariant 4).
+- **`packages/core/src/normalize.ts`** — added `canonicalizeUrl`.
+- **`packages/sources`** (new package) — `adapters/rss.ts` (the Atom/RSS
+  adapter and the `rel="alternate"` link-selection fix), `httpClient.ts`
+  (timeout + retry), `robots.ts` (`robots.txt`), `stripHtml.ts` (HTML-tag and
+  entity stripping — see Decisions), `registry.ts` (`getAdapter`), `index.ts`.
+  Fixtures at `test/fixtures/*.xml` are real entries fetched live on
+  2026-10-24 from both feeds, trimmed to 2–3 entries each.
+- **`packages/db/src/repositories/{sourceRepository,fetchRunRepository,
+  rawItemRepository}.ts`** (new) — plain async functions, no interface (see
+  Plan's S1/S7 reasoning), exported from `packages/db/src/index.ts`.
+- **`packages/db/src/seed/sources.ts`** — Brand Eating and PR Newswire now get
+  real feed URLs, correct slugs, and PR Newswire's trust tier 1; every seeded
+  source **except** those two is now `enabled: false` (see Decisions — not in
+  the original plan).
+- **`apps/ingest`** (new app) — `src/cli.ts`, `src/runFetchStage.ts` (the
+  per-source fetch/dry-run orchestration), `src/hashItem.ts` (canonicalize +
+  hash), `src/userAgent.ts`.
+- **Wiring** — `tsconfig.base.json`/`tsconfig.json` paths and includes;
+  `vitest.config.ts` gained a `sources` project and `apps/ingest/test/**`
+  folded into the existing `db` project; root `package.json` gained the
+  `ingest` script.
+- **Tests** — `packages/core/test/normalize.test.ts` (canonicalizeUrl cases),
+  `packages/db/test/schema.test.ts` (source_type enum parity, added to the
+  existing file rather than a new one — see Decisions),
+  `packages/sources/test/{adapters/rss,robots}.test.ts`,
+  `packages/db/test/{sourceRepository,fetchRunRepository,rawItemRepository}.test.ts`,
+  `apps/ingest/test/{runFetchStage.test.ts,testDb.ts}`.
 
 ### How to run it
 
-—
+```bash
+npm run db:reset          # clean local Postgres, seeded
+npm run ingest             # fetches both real sources
+npm run ingest -- --source=brandeating-rss --dry-run
+npm run ingest -- --stage=filter   # fails loudly: "not implemented until Phase 5"
+```
 
 ### How to test it
 
-—
+```bash
+npm run check && npm test   # 182 tests, all green, including the 2 new projects
+npm run build                # apps/web still builds — this phase touched no web code
+```
+
+By hand, against the real local Postgres and the real live feeds (not fixtures):
+reset, run `npm run ingest` twice in a row and confirm the second run's `new`
+counts drop to 0 (or `skipped_not_modified` on a 304), then `--dry-run` and
+confirm `raw_item`/`fetch_run` row counts are unchanged before/after. All of this
+was run during this session — see Decisions for what it surfaced.
 
 ### Known limitations
 
-—
+- **`robots.txt` `Allow:` overrides are not implemented** (as planned, S6) —
+  `Disallow`-only. Fine for these two feeds; revisit before Phase 10.
+- **`content_hash` is computed from the raw, unextracted `bodyText`** (as
+  planned) — no real text-extraction stage exists until Phase 5.
+- **Brand Eating never returned a 304 in live testing** — PR Newswire did (on
+  the second `npm run ingest` run), but Brand Eating's FeedBurner-proxied feed
+  returned 200 both times even with `If-None-Match`/`If-Modified-Since` sent.
+  Idempotency still holds (`ON CONFLICT DO NOTHING` doesn't depend on getting a
+  304), but the bandwidth savings conditional GET is meant to provide may not
+  materialize for this specific source. Not investigated further — not a
+  correctness issue, just an efficiency one.
+- **No test directly exercises `cli.ts`'s argument parsing or the
+  `--stage=<other>` rejection** — verified by hand (`npm run ingest --
+  --stage=filter` prints the expected "not implemented until Phase 5" error and
+  exits non-zero) rather than in an automated test, since `cli.ts` is a thin
+  wrapper over `runFetchStage` (which is fully tested) plus `node:util
+  parseArgs`.
 
 ### Decisions made during implementation
 
-—
+- **Six of the eight seeded sources were switched to `enabled: false`** — not
+  in the original plan. Discovered by actually running `npm run ingest` with no
+  `--source` filter: it fetched all 8 enabled mock-seeded sources, not just the
+  two real ones, because Phase 2's seed enables every source by default
+  regardless of whether it has a real feed URL yet. The other 6 (The Takeout,
+  Foodbeast, Delish, Eater, r/snackexchange, YouTube) still carry Phase 1/2
+  placeholder URLs — mostly bare homepages — so the run spent its full
+  retry/backoff budget on each one failing (`fast-xml-parser` choking on an
+  HTML homepage with "Maximum nested tags exceeded", or a clean "unrecognized
+  feed format"), and took over two minutes wall-clock for what should have
+  been a two-source, few-second job. Fixed at the seed, not the orchestrator:
+  `enabled` is exactly the column this situation means — Phase 6/10 flips each
+  one back to `true` as it gets a real feed and a working adapter.
+- **`cli.ts` was switched from `@bitedrop/db`'s `createDb()` to building its
+  own `postgres()`/`drizzle()` client directly, closed with `sql.end()`** —
+  also not in the original plan, and also found by actually running the
+  command rather than only by its exit code. `createDb()` is designed for
+  `apps/web`'s long-lived singleton (deliberately never closed — see Phase 2's
+  `getDb()`), so using it in a one-shot CLI left the connection pool open and
+  the process never exited; `npm run ingest` looked hung for two-plus minutes
+  even though the actual fetch work had finished in under two seconds. The fix
+  matches the pattern `migrate.ts`/`seed/run.ts` already use for the same
+  reason.
+- **A `stripHtml` step was added that the Plan's S4 field-mapping table didn't
+  mention.** Invariant 5 ("never store raw HTML") reads as unconditional, not
+  deferred to Phase 5's extraction stage, and both feeds' `description`/
+  `content`/`content:encoded` fields are HTML. Added `packages/sources/src/
+  stripHtml.ts` (tag stripping + a handful of entity decodes) and run every
+  `excerpt`/`bodyText` through it before truncating. This is the one place
+  implementation diverged from the written spec on a correctness requirement,
+  not just a convenience.
+- **The enum-parity test for `source_type` was added to the existing
+  `packages/db/test/schema.test.ts`**, not a new `packages/core/test/
+  source.test.ts` as S11 originally specified. `IngestSourceType` is a plain
+  TS union (no Zod schema to import), so the only runtime check possible is
+  against the database enum — which means the test has to live on the `db`
+  side (where the enum is queryable), matching how `drop_status` parity is
+  already tested, not on the `core` side where there's nothing to query
+  against.
+- **Live verification reproduced both of the prior session's findings
+  exactly**, confirming the memory snapshot was still accurate: Brand Eating's
+  `alt=rss` URL still 302s to a FeedBurner Atom feed with the same
+  comments/edit/self/alternate multi-link shape on every entry, and PR
+  Newswire's first 20 items were still ~95% non-food (securities-fraud
+  notices, "HelloNation" sponsored content, a pharma trial, one Darden
+  Restaurants employment lawsuit as the closest thing to food-adjacent).
+- **`runFetchStage` ended up as two near-duplicate functions
+  (`runDryRun`/`runReal`)** rather than one function with a `dryRun` branch
+  threaded through it, specifically so dry-run provably never calls
+  `startFetchRun`/`finishFetchRun`/`updateSourceHealth`/`insertRawItems` at
+  all — a shared function with an `if (dryRun)` guard around each write call
+  was harder to convince myself was correct by inspection than two short
+  functions where the non-dry-run one is the only one importing the write
+  functions it uses.
 
 ### Recommended next step
 
-—
+**Phase 5 — Filter + rule-based extraction.** `raw_item` now has real,
+unfiltered rows from two live sources (132 rows after one local run: ~14 from
+live ingestion, the rest from Phase 2's mock seed). The next meaningful gap is
+exactly the one this phase's warning banner named: almost everything in there
+is noise, and nothing yet separates a real product announcement from a
+lawsuit notice. Before starting, it's worth deciding whether Phase 5's fixture
+corpus should include real excerpts from this phase's two committed XML
+fixtures (already representative of both "signal" and "noise") rather than
+authoring new ones from scratch.

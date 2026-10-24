@@ -93,3 +93,23 @@ These are engineering requirements, not politeness:
 - Store links and short excerpts, never full article text for redistribution — every
   FoodDrop links back to its sources, which is both the brief's verifiability requirement
   and the right relationship with publishers.
+
+## Phase 4 findings (live, 2026-10-24)
+
+Both Phase 4 sources were re-verified live before implementation and again after;
+two things from the original 2026-09-11 probe still hold and matter for every
+later phase that reads `raw_item`:
+
+- **Brand Eating's `alt=rss` URL is Atom, not RSS.** It 302-redirects to
+  `feeds.feedburner.com/...`, whose content is Atom 1.0. Every entry carries
+  several `<link>` elements (`rel="replies"` ×2, `rel="edit"`, `rel="self"`,
+  `rel="alternate"`) — the article URL is specifically the `rel="alternate"`
+  one. See `docs/phases/phase-04-ingest.md` S4 for the full adapter spec.
+- **PR Newswire's food-and-beverage feed is ~95% non-food.** Sampling the live
+  feed's first 20 items (both at initial probe time and again during Phase 4
+  implementation) found securities-fraud lawsuit notices, "HelloNation"
+  sponsored local-business content, a pharma trial result, and one Darden
+  Restaurants employment-law suit as the closest thing to food-adjacent. This
+  is exactly the condition Phase 5's filter stage exists to handle — treat a
+  mostly-noise `raw_item` table as confirmation the pipeline is working, not as
+  a broken adapter.

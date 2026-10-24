@@ -9,6 +9,7 @@
       "@bitedrop/core/mock": ["packages/core/src/mock/index.ts"],
       "@bitedrop/db": ["packages/db/src/index.ts"],
       "@bitedrop/db/seed": ["packages/db/src/seed/index.ts"],
+      "@bitedrop/sources": ["packages/sources/src/index.ts"],
       "@/*": ["apps/web/*"]
     }
   },
@@ -17,8 +18,12 @@
     "packages/core/test/**/*.ts",
     "packages/db/src/**/*.ts",
     "packages/db/test/**/*.ts",
+    "packages/sources/src/**/*.ts",
+    "packages/sources/test/**/*.ts",
     "apps/web/**/*.ts",
     "apps/web/**/*.tsx",
+    "apps/ingest/src/**/*.ts",
+    "apps/ingest/test/**/*.ts",
     "vitest.config.ts",
     "vitest.setup.ts"
   ],

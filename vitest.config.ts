@@ -21,12 +21,23 @@ export default defineConfig({
         test: {
           name: 'db',
           environment: 'node',
-          include: ['packages/db/test/**/*.test.ts'],
+          // apps/ingest's orchestration tests live here too, not in a
+          // fourth project — they need the same real TEST_DATABASE_URL and
+          // truncate-between-files setup this project already has.
+          include: ['packages/db/test/**/*.test.ts', 'apps/ingest/test/**/*.test.ts'],
           // Unlike fileParallelism, setupFiles IS per-project — each
           // project needs its own DATABASE_URL/TEST_DATABASE_URL loaded
           // from .env.local, since `npm test` doesn't source it into the
           // shell itself.
           setupFiles: ['./vitest.setup.ts'],
+        },
+      },
+      {
+        test: {
+          name: 'sources',
+          environment: 'node',
+          // Fixture-based, no network, no DB — same shape as 'core'.
+          include: ['packages/sources/test/**/*.test.ts'],
         },
       },
     ],

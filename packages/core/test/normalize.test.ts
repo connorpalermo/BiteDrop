@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildTsQuery, composeSearchText, normalizeName, normalizeText } from '../src/normalize';
+import {
+  buildTsQuery,
+  canonicalizeUrl,
+  composeSearchText,
+  normalizeName,
+  normalizeText,
+} from '../src/normalize';
 
 describe('normalizeText', () => {
   it('lowercases and strips diacritics', () => {
@@ -72,5 +78,33 @@ describe('buildTsQuery', () => {
 
   it('is case- and diacritic-insensitive', () => {
     expect(buildTsQuery('CRÈME')).toBe('creme:*');
+  });
+});
+
+describe('canonicalizeUrl', () => {
+  it('strips utm_* query params', () => {
+    expect(canonicalizeUrl('https://example.com/a?utm_source=rss&utm_medium=feed')).toBe(
+      'https://example.com/a',
+    );
+  });
+
+  it('strips the fragment', () => {
+    expect(canonicalizeUrl('https://example.com/a#section-2')).toBe('https://example.com/a');
+  });
+
+  it('sorts remaining query params by key', () => {
+    expect(canonicalizeUrl('https://example.com/a?b=2&a=1')).toBe('https://example.com/a?a=1&b=2');
+  });
+
+  it('two URLs differing only in tracking params, query order, and fragment canonicalise identically', () => {
+    const a = canonicalizeUrl('https://example.com/a?utm_source=rss&b=2&a=1#x');
+    const b = canonicalizeUrl('https://example.com/a?a=1&utm_campaign=foo&b=2');
+    expect(a).toBe(b);
+  });
+
+  it('leaves a non-utm query param that merely starts similarly untouched', () => {
+    expect(canonicalizeUrl('https://example.com/a?utmost=1')).toBe(
+      'https://example.com/a?utmost=1',
+    );
   });
 });

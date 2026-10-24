@@ -41,6 +41,25 @@ describe('schema', () => {
     expect(rows.map((r) => r.enumlabel)).toEqual([...dropStatusSchema.options]);
   });
 
+  it('source_type enum members match IngestSourceType, in order', async () => {
+    const db = getTestDb();
+    const rows = await db.execute<{ enumlabel: string }>(sql`
+      SELECT enumlabel FROM pg_enum
+      WHERE enumtypid = 'source_type'::regtype
+      ORDER BY enumsortorder
+    `);
+    // IngestSourceType (packages/core/src/source.ts) is a plain TS union, not
+    // a Zod schema, so there is no runtime array to import and compare
+    // against — this literal list IS the parity check.
+    expect(rows.map((r) => r.enumlabel)).toEqual([
+      'rss',
+      'json_api',
+      'html_listing',
+      'reddit',
+      'youtube',
+    ]);
+  });
+
   it('seeded category slugs match CATEGORIES, in order', async () => {
     const db = getTestDb();
     const rows = await db

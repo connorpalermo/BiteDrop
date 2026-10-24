@@ -5,3 +5,4 @@ export * from './repository';
 export * from './format';
 export * from './searchParams';
 export * from './normalize';
+export * from './source';
