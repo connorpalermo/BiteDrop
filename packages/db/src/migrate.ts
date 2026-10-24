@@ -10,11 +10,21 @@ loadEnv({ path: path.join(process.cwd(), '.env.local'), quiet: true });
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 
+// Locally and in CI these already exist (docker-compose's and the CI
+// workflow's init scripts create them); on a fresh target like a new Neon
+// project they don't. Idempotent, so safe to run every time regardless.
+async function ensureExtensions(sql: postgres.Sql): Promise<void> {
+  await sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
+  await sql`CREATE EXTENSION IF NOT EXISTS pg_trgm`;
+  await sql`CREATE EXTENSION IF NOT EXISTS unaccent`;
+}
+
 async function migrateUrl(url: string): Promise<void> {
   const sql = postgres(url, { max: 1 });
   const db = drizzle(sql);
 
   console.log(`Migrating ${url} ...`);
+  await ensureExtensions(sql);
   await migrate(db, { migrationsFolder: path.join(dir, '../migrations') });
 
   await sql.end();

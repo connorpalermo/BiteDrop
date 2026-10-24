@@ -435,6 +435,10 @@ Worth a second opinion, specifically:
 
 - **`packages/db/src/client.ts`** — `createDb` now passes `prepare: false` to
   postgres.js (S3), required for Neon's pooled (transaction-mode) endpoint.
+- **`packages/db/src/migrate.ts`** — now creates `pgcrypto`/`pg_trgm`/`unaccent`
+  idempotently before running migrations, so `db:migrate` is self-sufficient
+  against any fresh Postgres target instead of depending on a separate,
+  easy-to-forget bootstrap step (see Decisions).
 - **`.github/workflows/ci.yml`** (new) — typecheck, lint, format, unit +
   integration tests, and a production build, all against a Postgres service
   container bootstrapped from the committed `packages/db/init/01-init.sql`
@@ -527,10 +531,13 @@ codes) to confirm no error page was hiding behind a 200.
   before migrating, unlike local (where Docker Compose mounts and runs it
   automatically) and CI (where S7's workflow runs it explicitly). Drizzle
   wraps the whole migration in one transaction, so the failed attempt rolled
-  back cleanly with nothing partially applied — the fix was three
-  `CREATE EXTENSION IF NOT EXISTS` statements run by hand against Neon's
-  direct endpoint, then a clean retry. Worth adding to S2 if this doc is ever
-  reused for a second deployment target.
+  back cleanly with nothing partially applied. Fixed by hand for that one
+  deployment, then fixed at the root as a follow-up: `migrate.ts` now runs
+  the three `CREATE EXTENSION IF NOT EXISTS` statements itself before every
+  migration, idempotently, so `db:migrate` against any fresh target (a new
+  Neon project, a branch, anything) is self-sufficient and this class of gap
+  can't recur. Verified by migrating a bare `postgres:17-alpine` container
+  with zero extensions pre-installed, end to end, with no manual step.
 - **CI was validated against a real GitHub Actions run before being treated
   as done**, not just the local dry-run documented in the Plan — the push
   that introduced `ci.yml` triggered a real workflow run, which completed
