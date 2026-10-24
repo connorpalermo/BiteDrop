@@ -13,4 +13,20 @@ export {
   type FetchRunFinishPatch,
 } from './repositories/fetchRunRepository';
 export { insertRawItems, type InsertableRawItem } from './repositories/rawItemRepository';
+export {
+  listDiscoveredRawItems,
+  applyFilterVerdicts,
+  type FilterableRawItem,
+  type FilterVerdictWrite,
+} from './repositories/filterRepository';
+export {
+  listCandidateRawItems,
+  listKnownBrands,
+  listCategoryIds,
+  createFoodDropFromExtraction,
+  markRawItemFailed,
+  type CandidateRawItem,
+  type FoodDropLink,
+  type KnownBrand,
+} from './repositories/extractRepository';
 export * as schema from './schema/index';

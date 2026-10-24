@@ -5,6 +5,7 @@ import {
   composeSearchText,
   normalizeName,
   normalizeText,
+  truncateAtWord,
 } from '../src/normalize';
 
 describe('normalizeText', () => {
@@ -106,5 +107,23 @@ describe('canonicalizeUrl', () => {
     expect(canonicalizeUrl('https://example.com/a?utmost=1')).toBe(
       'https://example.com/a?utmost=1',
     );
+  });
+});
+
+describe('truncateAtWord', () => {
+  it('returns the value unchanged when already within maxLength', () => {
+    expect(truncateAtWord('Spicy Chick-fil-A Sauce', 140)).toBe('Spicy Chick-fil-A Sauce');
+  });
+
+  it('cuts at the last whole word before maxLength, never mid-word', () => {
+    const value = 'Chick-fil-A Unveils New Spicy Chick-fil-A Sauce Nationwide Starting Next Month';
+    const result = truncateAtWord(value, 40);
+    expect(result.length).toBeLessThanOrEqual(40);
+    expect(value.startsWith(result)).toBe(true);
+    expect(value[result.length]).toBe(' ');
+  });
+
+  it('falls back to a hard cut when there is no earlier space to cut at', () => {
+    expect(truncateAtWord('Supercalifragilisticexpialidocious', 10)).toBe('Supercalif');
   });
 });

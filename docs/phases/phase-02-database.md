@@ -271,8 +271,10 @@ export const retailerType = pgEnum('retailer_type', [
 `packages/core/src/schemas.ts`, in the same order. A mismatch is a silent
 runtime failure at the boundary. Assert it in a test (S15).
 
-`item_stage`'s members beyond `discovered`/`candidate` are provisional — Phase 4
+`item_stage`'s members beyond `discovered`/`candidate` are provisional — Phase 5
 owns the pipeline and may revise them. Noted so nobody treats them as settled.
+(Corrected from "Phase 4" during Phase 5 — Phase 4 turned out to own only Fetch
+and never touched `item_stage` beyond writing `'discovered'`.)
 
 #### S4.3 — Columns
 

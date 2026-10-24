@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Planned |
+| **Status** | Complete — awaiting review |
 | **Planned** | 2026-10-24 |
-| **Completed** | — |
+| **Completed** | 2026-10-24 |
 | **Commits** | — (left in the working tree; commits are the repo owner's) |
 
 **Goal.** Real `FoodDrop`s appear in the feed, built entirely from the `raw_item`
@@ -530,42 +530,42 @@ no-op (nothing left in `discovered` to re-filter).
 
 **Filter**
 
-- [ ] 1 — `npm run ingest -- --stage=filter` moves every `discovered` row to
+- [x] 1 — `npm run ingest -- --stage=filter` moves every `discovered` row to
       `candidate` or `rejected`, with `filter_reason` set on every rejection.
-- [ ] 2 — Each of the three real noise titles observed live in Phase 4 is rejected
+- [x] 2 — Each of the three real noise titles observed live in Phase 4 is rejected
       by the rule named for it in S1's table.
-- [ ] 3 — A real Brand Eating-shaped announcement title passes.
+- [x] 3 — A real Brand Eating-shaped announcement title passes.
 
 **Extract**
 
-- [ ] 4 — `npm run ingest -- --stage=extract` creates exactly one `food_drop` and
+- [x] 4 — `npm run ingest -- --stage=extract` creates exactly one `food_drop` and
       one `food_drop_source` row per surviving `candidate`, and sets that
       `raw_item.stage` to `linked`.
-- [ ] 5 — A candidate whose extracted output fails `foodDropExtractionSchema`
+- [x] 5 — A candidate whose extracted output fails `foodDropExtractionSchema`
       validation is marked `failed` with a `last_error`, and does not block
       extraction of the next candidate (per-item isolation).
-- [ ] 6 — `brandId` is set only when a Phase 2 seeded brand name appears in the
+- [x] 6 — `brandId` is set only when a Phase 2 seeded brand name appears in the
       text; no new `brand` row is ever created by this phase.
-- [ ] 7 — Hedge language (`rumored`, `reportedly`, ...) always produces
+- [x] 7 — Hedge language (`rumored`, `reportedly`, ...) always produces
       `status='rumored'` and `confidence <= 0.4`.
-- [ ] 8 — `published = true` iff `status !== 'rumored'` and `confidence >= 0.6`.
+- [x] 8 — `published = true` iff `status !== 'rumored'` and `confidence >= 0.6`.
 
 **Architecture**
 
-- [ ] 9 — `LlmProvider`'s interface lives in `packages/core`; `RuleBasedProvider`
+- [x] 9 — `LlmProvider`'s interface lives in `packages/core`; `RuleBasedProvider`
       is its only implementation, in `packages/llm`.
-- [ ] 10 — All SQL for this phase lives under `packages/db/src/repositories/`
+- [x] 10 — All SQL for this phase lives under `packages/db/src/repositories/`
       (invariant 1).
-- [ ] 11 — `packages/core` gains no I/O (invariant 4): `filter.ts`/`extract.ts`
+- [x] 11 — `packages/core` gains no I/O (invariant 4): `filter.ts`/`extract.ts`
       are pure.
-- [ ] 12 — `--stage=dedupe`/`enrich`/`publish`/`normalize` each fail loudly with
+- [x] 12 — `--stage=dedupe`/`enrich`/`publish`/`normalize` each fail loudly with
       the clarifying message from S7's `STAGE_OWNERS` map.
-- [ ] 13 — `--dry-run` writes nothing for either new stage.
+- [x] 13 — `--dry-run` writes nothing for either new stage.
 
 **Hygiene**
 
-- [ ] 14 — `npm run check && npm test` pass, including the new `llm` project.
-- [ ] 15 — The stale "Phase 4" comment in `enums.ts`/`phase-02-database.md` (S8)
+- [x] 14 — `npm run check && npm test` pass, including the new `llm` project.
+- [x] 15 — The stale "Phase 4" comment in `enums.ts`/`phase-02-database.md` (S8)
       is corrected.
 
 ### Verification commands
@@ -621,28 +621,125 @@ Worth a second opinion, specifically:
 
 ## Outcome
 
-*Filled in at completion. Everything below is written after the work, not before.*
-
 ### What changed
 
-—
+- **`packages/core/src/filter.ts`** (new) — `applyFilter`, the 6-rule pipeline.
+- **`packages/core/src/extract.ts`** (new) — `foodDropExtractionSchema`/`FoodDropExtraction`.
+- **`packages/core/src/llm.ts`** (new) — `LlmProvider`, `Result<T, E>`, `LlmError`, `TokenBudget`.
+- **`packages/core/src/normalize.ts`** — added `truncateAtWord`.
+- **`packages/llm`** (new package) — `providers/ruleBasedHeuristics.ts` (category/
+  brand/status/date/price heuristics + confidence scoring), `providers/rule-based.ts`
+  (the `LlmProvider` adapter: JSON-parses `input`, validates output against
+  `opts.schema`), `index.ts`.
+- **`packages/db/src/repositories/{filterRepository,extractRepository}.ts`** (new) —
+  exported from `packages/db/src/index.ts`. `extractRepository.ts` ended up with
+  `listKnownBrands` (id + name) rather than the plan's `listKnownBrandNames`
+  (name only) — see Decisions.
+- **`packages/db/src/seed/sources.ts`** — unchanged this phase (Phase 4's `enabled`
+  flip already scopes ingestion to the two real sources).
+- **`apps/ingest`** — `src/{runFilterStage,runExtractStage,resolveSourceId}.ts`
+  (new); `src/cli.ts` rewritten so the default run is fetch→filter→extract, with
+  `--stage=fetch|filter|extract` as single-stage overrides and a clarifying
+  rejection message for `normalize`/`dedupe`/`enrich`/`publish`.
+- **Housekeeping (S8)** — the stale "Phase 4 owns `item_stage`" comment corrected
+  to Phase 5 in `packages/db/src/schema/enums.ts` and `phase-02-database.md`.
+- **Tests** — `packages/core/test/filter.test.ts` (new, 12 cases, including the
+  three real Phase 4 noise titles by exact reason); `normalize.test.ts` gained
+  `truncateAtWord` cases; `packages/llm/test/providers/rule-based.test.ts` (new,
+  23 cases); `packages/db/test/{filterRepository,extractRepository}.test.ts`
+  (new); `apps/ingest/test/{runFilterStage,runExtractStage}.test.ts` (new).
+  237 tests pass across 5 projects (`core`, `db`, `sources`, `llm`, and
+  `apps/ingest`'s tests folded into `db`).
 
 ### How to run it
 
-—
+```bash
+npm run db:reset
+npm run ingest                         # fetch, then filter, then extract
+npm run ingest -- --stage=filter       # re-run just one stage
+npm run ingest -- --stage=extract --dry-run
+```
 
 ### How to test it
 
-—
+```bash
+npm run check && npm test   # 237 tests, all green
+npm run build
+```
+
+By hand, against the real local Postgres and the real live feeds: ran the full
+pipeline end to end twice in a row (second run: 0 new `food_drop`s, confirming
+idempotency flows through from Phase 4's `raw_item` idempotency — nothing left
+in `discovered`/`candidate` to reprocess); ran each stage individually via
+`--stage=`; confirmed `--dry-run` leaves row counts unchanged for both new
+stages; confirmed each rejected `--stage` name prints its S7 clarifying message
+and exits non-zero.
 
 ### Known limitations
 
-—
+- **The `no_food_signal` announcement-language catch-all (`launch`/`debut`/
+  `unveil`/`introduce`) over-matches in practice, observed on the very first
+  real run.** Three of the first 10 created drops were false positives that
+  slipped through purely because their headlines used announcement phrasing
+  with nothing food-specific: a vitamin-brand product launch ("Swanson
+  Vitamins Launches..."), an entertainment-IP debut ("CSTS Debuts Global
+  Entertainment IP PremierX..."), and a freight-company correction notice. This
+  is exactly the failure mode the Plan's warning banner anticipated
+  ("deliberately simple ... will both over- and under-match"), now with a
+  concrete instance. Not fixed in this phase — flagged for the repo owner
+  rather than silently retuned, per the Review notes' request for a second
+  opinion on these exact heuristics.
+- **The `0.6` publish threshold turned out to barely filter anything.** Every
+  one of the 10 real drops created in the first live run published, including
+  the three false positives above — the trust-tier confidence baseline (0.5 or
+  0.7) plus any one heuristic hit clears `0.6` almost automatically, so in
+  practice the threshold currently only blocks hedge-language ("rumored")
+  items, which are separately capped at `0.4` anyway. The belt-and-suspenders
+  `status !== 'rumored'` check (S6) is doing real work here; the numeric
+  threshold, as tuned, is closer to decorative. Worth retuning once there's
+  more real output to look at.
+- **No new `Brand` row is ever auto-created** (as planned) — of the 10 real
+  drops, only one ("Taco Bell Introduces New Dream Refrescas") matched a known
+  brand; legitimate food news about brands outside Phase 2's 8-brand mock list
+  (Dutch Bros, Domino's, Little Debbie, Papa Johns — all genuinely present in
+  the same run's output) got `brand_id = null`, as designed.
+- **`robots.txt`/conditional-GET/retry behavior from Phase 4 is unchanged** and
+  out of scope here — this phase only reads already-fetched `raw_item` rows.
 
 ### Decisions made during implementation
 
-—
+- **`extractRepository.ts` exports `listKnownBrands` (`{id, name}[]`), not the
+  plan's `listKnownBrandNames` (`string[]`)** — found while wiring
+  `runExtractStage.ts`: `createFoodDropFromExtraction` needs a brand **id** for
+  `food_drop.brand_id`, and the heuristics only need brand **names** to match
+  against. Returning both from one call and letting the orchestrator derive
+  the names array (`knownBrands.map(b => b.name)`) avoids a second query
+  without pushing an id-lookup concern into the pure heuristics layer.
+- **`createFoodDropFromExtraction`'s signature groups `brandId`/`categoryId`
+  into one `FoodDropLink` object**, not two trailing positional params as the
+  plan's snippet showed — ESLint's `max-params` (4) caught this immediately;
+  grouping the two "how this links to existing canonical data" fields together
+  reads better than it looks like a lint workaround.
+- **The `input`-as-JSON-string design for `LlmProvider.extract` (S4) worked
+  exactly as planned**, including the defensive `opts.schema.safeParse`
+  check — verified with a real test that spies on `runHeuristics` to inject an
+  out-of-range confidence and confirms the schema check catches it before
+  anything would reach `food_drop`.
+- **A real `npm run ingest` run reproduced both planned warnings immediately**:
+  the filter's over-matching (see Known limitations) and PR Newswire's general
+  noisiness (6 of 27 fetched items were lawsuit notices, 3 were sponsored
+  filler — all correctly rejected with the right reason). The mechanism this
+  phase set out to build — named rules, a stored reason, re-runnable stages —
+  worked exactly as intended; it's specifically the *content* of the rules
+  that has obvious room to improve, which is the expected order of problems to
+  solve in.
 
 ### Recommended next step
 
-—
+**Revisit the filter/confidence tuning with the repo owner before Phase 6**,
+using this phase's real output as the starting corpus — the three false
+positives and the barely-functional publish threshold are concrete, cheap to
+fix, and fixing them now means Phase 6's dedupe corpus starts from cleaner
+data. After that: **Phase 6 — Deduplication**, which is what turns this
+phase's "every candidate is its own drop" simplification into the product's
+actual differentiator (four sources, one drop).

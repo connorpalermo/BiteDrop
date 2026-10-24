@@ -1,21 +1,30 @@
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { loadDbConfig, schema } from '@bitedrop/db';
+import { loadDbConfig, schema, type Database } from '@bitedrop/db';
 import { config as loadEnv } from 'dotenv';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { runExtractStage } from './runExtractStage';
 import { runFetchStage } from './runFetchStage';
+import { runFilterStage } from './runFilterStage';
 
 loadEnv({ path: path.join(process.cwd(), '.env.local'), quiet: true });
 
+const VALID_STAGES = ['fetch', 'filter', 'extract'] as const;
+type Stage = (typeof VALID_STAGES)[number];
+
 const STAGE_OWNERS: Record<string, string> = {
-  filter: 'Phase 5',
-  extract: 'Phase 5/8',
-  normalize: 'Phase 5',
+  normalize: 'folded into --stage=extract, not a separate stage',
   dedupe: 'Phase 6',
   enrich: 'Phase 9',
-  publish: 'Phase 5',
+  publish:
+    'there is no separate publish stage — publishing happens automatically during ' +
+    'extraction based on confidence (see docs/phases/phase-05-filter-extract.md)',
 };
+
+function isValidStage(value: string): value is Stage {
+  return (VALID_STAGES as readonly string[]).includes(value);
+}
 
 function parseCliArgs(argv: string[]) {
   const { values } = parseArgs({
@@ -23,24 +32,59 @@ function parseCliArgs(argv: string[]) {
     options: {
       source: { type: 'string' },
       'dry-run': { type: 'boolean', default: false },
-      stage: { type: 'string', default: 'fetch' },
+      stage: { type: 'string' },
     },
   });
-  return {
-    source: values.source,
-    dryRun: values['dry-run'] ?? false,
-    stage: values.stage ?? 'fetch',
-  };
+  return { source: values.source, dryRun: values['dry-run'] ?? false, stage: values.stage };
+}
+
+async function runFetch(
+  db: Database,
+  source: string | undefined,
+  dryRun: boolean,
+): Promise<boolean> {
+  const results = await runFetchStage(db, { sourceSlug: source, dryRun });
+  for (const result of results) {
+    console.log(
+      `fetch   ${result.sourceSlug}: ${result.status} — seen ${result.itemsSeen}, new ${result.itemsNew}` +
+        (result.error ? ` — ${result.error}` : ''),
+    );
+  }
+  return results.every((r) => r.status !== 'error');
+}
+
+async function runFilter(
+  db: Database,
+  source: string | undefined,
+  dryRun: boolean,
+): Promise<boolean> {
+  const result = await runFilterStage(db, { sourceSlug: source, dryRun });
+  console.log(
+    `filter  seen ${result.seen}, passed ${result.passed}, rejected ${result.rejected}` +
+      (result.rejected > 0 ? ` (${JSON.stringify(result.reasonCounts)})` : ''),
+  );
+  return true;
+}
+
+async function runExtract(
+  db: Database,
+  source: string | undefined,
+  dryRun: boolean,
+): Promise<boolean> {
+  const result = await runExtractStage(db, { sourceSlug: source, dryRun });
+  console.log(`extract seen ${result.seen}, created ${result.created}, failed ${result.failed}`);
+  for (const failure of result.failures) {
+    console.log(`  failed ${failure.rawItemId}: ${failure.message}`);
+  }
+  return result.failed === 0;
 }
 
 async function main() {
   const { source, dryRun, stage } = parseCliArgs(process.argv.slice(2));
 
-  if (stage !== 'fetch') {
+  if (stage !== undefined && !isValidStage(stage)) {
     const owner = STAGE_OWNERS[stage] ?? 'a later phase';
-    throw new Error(
-      `--stage=${stage} is not implemented until ${owner}. Only "fetch" exists today.`,
-    );
+    throw new Error(`--stage=${stage} is not implemented: ${owner}.`);
   }
 
   const { DATABASE_URL } = loadDbConfig();
@@ -52,19 +96,20 @@ async function main() {
   const db = drizzle(sql, { schema });
 
   try {
-    const results = await runFetchStage(db, { sourceSlug: source, dryRun });
-    for (const result of results) {
-      console.log(
-        `${result.sourceSlug}: ${result.status} — seen ${result.itemsSeen}, new ${result.itemsNew}` +
-          (result.error ? ` — ${result.error}` : ''),
-      );
+    // No --stage: run the full pipeline. One stage given: run only that one,
+    // over whatever rows are already sitting at the stage before it.
+    const stagesToRun: Stage[] = stage ? [stage] : [...VALID_STAGES];
+    let allOk = true;
+    for (const current of stagesToRun) {
+      const ok =
+        current === 'fetch'
+          ? await runFetch(db, source, dryRun)
+          : current === 'filter'
+            ? await runFilter(db, source, dryRun)
+            : await runExtract(db, source, dryRun);
+      allOk &&= ok;
     }
-
-    const failed = results.filter((r) => r.status === 'error');
-    if (failed.length > 0) {
-      console.error(`${failed.length} of ${results.length} source(s) failed.`);
-      process.exitCode = 1;
-    }
+    if (!allOk) process.exitCode = 1;
   } finally {
     await sql.end();
   }

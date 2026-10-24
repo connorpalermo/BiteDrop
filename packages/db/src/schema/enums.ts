@@ -15,7 +15,7 @@ export const fetchStatusEnum = pgEnum('fetch_status', [
   'skipped_not_modified',
 ]);
 
-// item_stage's members beyond discovered/candidate are provisional — Phase 4
+// item_stage's members beyond discovered/candidate are provisional — Phase 5
 // owns the pipeline and may revise them.
 export const itemStageEnum = pgEnum('item_stage', [
   'discovered',

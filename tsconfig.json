@@ -10,6 +10,7 @@
       "@bitedrop/db": ["packages/db/src/index.ts"],
       "@bitedrop/db/seed": ["packages/db/src/seed/index.ts"],
       "@bitedrop/sources": ["packages/sources/src/index.ts"],
+      "@bitedrop/llm": ["packages/llm/src/index.ts"],
       "@/*": ["apps/web/*"]
     }
   },
@@ -20,6 +21,8 @@
     "packages/db/test/**/*.ts",
     "packages/sources/src/**/*.ts",
     "packages/sources/test/**/*.ts",
+    "packages/llm/src/**/*.ts",
+    "packages/llm/test/**/*.ts",
     "apps/web/**/*.ts",
     "apps/web/**/*.tsx",
     "apps/ingest/src/**/*.ts",

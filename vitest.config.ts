@@ -40,6 +40,14 @@ export default defineConfig({
           include: ['packages/sources/test/**/*.test.ts'],
         },
       },
+      {
+        test: {
+          name: 'llm',
+          environment: 'node',
+          // Pure heuristics, no network, no DB — same shape as 'core'/'sources'.
+          include: ['packages/llm/test/**/*.test.ts'],
+        },
+      },
     ],
   },
 });

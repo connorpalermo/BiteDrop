@@ -1,0 +1,108 @@
+import { describe, expect, it } from 'vitest';
+import { applyFilter, type FilterableItem } from '../src/filter';
+
+const NOW = new Date('2026-10-24T00:00:00.000Z');
+
+function item(overrides: Partial<FilterableItem> = {}): FilterableItem {
+  return {
+    title: null,
+    excerpt: null,
+    bodyText: null,
+    publishedAt: null,
+    discoveredAt: NOW.toISOString(),
+    ...overrides,
+  };
+}
+
+describe('applyFilter', () => {
+  it('passes a real Brand Eating-shaped announcement title', () => {
+    const verdict = applyFilter(item({ title: 'Chick-fil-A Unveils New Spicy Chick-fil-A Sauce' }));
+    expect(verdict).toEqual({ passed: true, reason: null });
+  });
+
+  it('passes a real on-topic PR Newswire-shaped title', () => {
+    const verdict = applyFilter(
+      item({ title: "Reese's Caramel Apple Cups spotted ahead of nationwide launch" }),
+    );
+    expect(verdict.passed).toBe(true);
+  });
+
+  it('rejects the real BBNX securities-lawsuit title as legal_or_lawsuit_noise', () => {
+    const verdict = applyFilter(
+      item({
+        title:
+          'BBNX Deadline: BBNX Investors Have Opportunity to Lead Beta Bionics, Inc. Securities Fraud Lawsuit',
+      }),
+    );
+    expect(verdict).toEqual({ passed: false, reason: 'legal_or_lawsuit_noise' });
+  });
+
+  it('rejects the real HelloNation sponsored-filler title as sponsored_filler', () => {
+    const verdict = applyFilter(
+      item({
+        title:
+          'In HelloNation, Behavioral Health Experts Cody Luke and David Spencer Explain What to Expect',
+      }),
+    );
+    expect(verdict).toEqual({ passed: false, reason: 'sponsored_filler' });
+  });
+
+  it('rejects the real World Young Scientist Summit title as no_food_signal', () => {
+    const verdict = applyFilter(
+      item({ title: 'World Young Scientist Summit 2026 Opens in Wenzhou, Zhejiang' }),
+    );
+    expect(verdict).toEqual({ passed: false, reason: 'no_food_signal' });
+  });
+
+  it('rejects a recipe/listicle title', () => {
+    expect(applyFilter(item({ title: 'Top 10 Best Snacks Ranked' })).reason).toBe(
+      'recipe_or_listicle',
+    );
+    expect(applyFilter(item({ title: 'How to Make Homemade Caramel Sauce' })).reason).toBe(
+      'recipe_or_listicle',
+    );
+  });
+
+  it('rejects a review/opinion title', () => {
+    expect(applyFilter(item({ title: 'Review: We Tried the New Spicy Sauce' })).reason).toBe(
+      'review_or_opinion',
+    );
+  });
+
+  it('rejects an item older than 30 days as too_old', () => {
+    const oldDate = new Date(NOW.getTime() - 31 * 24 * 60 * 60 * 1000).toISOString();
+    const verdict = applyFilter(
+      item({ title: 'New Spicy Chicken Sandwich Launches', publishedAt: oldDate }),
+      NOW,
+    );
+    expect(verdict).toEqual({ passed: false, reason: 'too_old' });
+  });
+
+  it('an item within 30 days is not rejected as too_old', () => {
+    const recentDate = new Date(NOW.getTime() - 29 * 24 * 60 * 60 * 1000).toISOString();
+    const verdict = applyFilter(
+      item({ title: 'New Spicy Chicken Sandwich Launches', publishedAt: recentDate }),
+      NOW,
+    );
+    expect(verdict.reason).not.toBe('too_old');
+  });
+
+  it('falls back to discoveredAt when publishedAt is null for the too_old check', () => {
+    const oldDiscovered = new Date(NOW.getTime() - 31 * 24 * 60 * 60 * 1000).toISOString();
+    const verdict = applyFilter(
+      item({ title: 'New Spicy Chicken Sandwich Launches', discoveredAt: oldDiscovered }),
+      NOW,
+    );
+    expect(verdict).toEqual({ passed: false, reason: 'too_old' });
+  });
+
+  it('rejects an item with no title, excerpt, or bodyText as no_food_signal', () => {
+    expect(applyFilter(item()).reason).toBe('no_food_signal');
+  });
+
+  it('rejects an off-topic title with no food signal at all', () => {
+    expect(applyFilter(item({ title: 'City Council Approves New Zoning Ordinance' })).reason).toBe(
+      'no_food_signal',
+    );
+  });
+});

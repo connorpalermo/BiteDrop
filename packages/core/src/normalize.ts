@@ -83,3 +83,15 @@ export function canonicalizeUrl(rawUrl: string): string {
 
   return url.toString();
 }
+
+/**
+ * Truncates at the last whole word before maxLength, never mid-word —
+ * phase-02's shortDescription landmine, applied to extracted titles.
+ */
+export function truncateAtWord(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value;
+
+  const cut = value.slice(0, maxLength);
+  const lastSpace = cut.lastIndexOf(' ');
+  return lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+}
