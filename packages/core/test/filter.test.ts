@@ -22,7 +22,7 @@ describe('applyFilter', () => {
 
   it('passes a real on-topic PR Newswire-shaped title', () => {
     const verdict = applyFilter(
-      item({ title: "Reese's Caramel Apple Cups spotted ahead of nationwide launch" }),
+      item({ title: "New Reese's Candy Cups spotted ahead of nationwide release" }),
     );
     expect(verdict.passed).toBe(true);
   });
@@ -104,5 +104,16 @@ describe('applyFilter', () => {
     expect(applyFilter(item({ title: 'City Council Approves New Zoning Ordinance' })).reason).toBe(
       'no_food_signal',
     );
+  });
+
+  it('rejects announcement-shaped PR with no food content — the real false positives this rule used to let through', () => {
+    const titles = [
+      'Roadrunner Launches Its First-Ever Outbound Canada-to-U.S. LTL Service',
+      'Swanson Vitamins Launches Swanson Vitamins Nexus Pro to Champion Registered Dietitians',
+      "CSTS Debuts Global Entertainment IP PremierX at New York's Pier 17",
+    ];
+    for (const title of titles) {
+      expect(applyFilter(item({ title })).reason).toBe('no_food_signal');
+    }
   });
 });

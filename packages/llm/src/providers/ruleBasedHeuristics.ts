@@ -77,6 +77,14 @@ function detectPrice(text: string): { priceCents: number | null; priceCurrency: 
   return { priceCents: Math.round(parseFloat(match[1]!) * 100), priceCurrency: 'USD' };
 }
 
+/**
+ * Rebalanced from the original design: trust tier alone used to clear the
+ * 0.6 publish threshold by itself (PR Newswire's 0.7 baseline always did;
+ * Brand Eating's 0.5 did as soon as any category matched). That meant
+ * publishing never actually required knowing anything about the item. Now
+ * neither baseline clears the threshold alone — a category match (the best
+ * available proxy for "we know what this is") is effectively required.
+ */
 function computeConfidence(opts: {
   sourceTrustTier: number;
   brandMatched: boolean;
@@ -84,9 +92,9 @@ function computeConfidence(opts: {
   dateFound: boolean;
   isRumored: boolean;
 }): number {
-  const base = opts.sourceTrustTier === 1 ? 0.7 : 0.5;
+  const base = opts.sourceTrustTier === 1 ? 0.45 : 0.35;
   const bumps =
-    (opts.brandMatched ? 0.15 : 0) + (opts.categoryMatched ? 0.1 : 0) + (opts.dateFound ? 0.05 : 0);
+    (opts.brandMatched ? 0.2 : 0) + (opts.categoryMatched ? 0.25 : 0) + (opts.dateFound ? 0.05 : 0);
   const raw = opts.isRumored ? Math.min(base + bumps, 0.4) : base + bumps;
   return Math.min(1, Math.max(0, raw));
 }

@@ -68,6 +68,27 @@ describe('ruleBasedProvider.extract — brand matching', () => {
   });
 });
 
+describe('ruleBasedProvider.extract — confidence requires real signal, not just trust tier', () => {
+  it('trust tier alone (no brand/category/date match) never reaches the 0.6 publish threshold', async () => {
+    const tier1Bare = await extract(
+      input({ title: 'Acme Corp Announces Quarterly Results', sourceTrustTier: 1 }),
+    );
+    const tier2Bare = await extract(
+      input({ title: 'Acme Corp Announces Quarterly Results', sourceTrustTier: 2 }),
+    );
+    expect(tier1Bare.confidence).toBeLessThan(0.6);
+    expect(tier2Bare.confidence).toBeLessThan(0.6);
+  });
+
+  it('a real category match (no brand) is enough on its own to clear 0.6', async () => {
+    const extraction = await extract(
+      input({ title: 'New burger available at a drive-thru nationwide', sourceTrustTier: 2 }),
+    );
+    expect(extraction.categorySlug).not.toBe('other');
+    expect(extraction.confidence).toBeGreaterThanOrEqual(0.6);
+  });
+});
+
 describe('ruleBasedProvider.extract — status and confidence', () => {
   it('hedge language forces rumored and caps confidence at 0.4 even with other hits', async () => {
     const extraction = await extract(

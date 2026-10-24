@@ -13,8 +13,18 @@ export interface FilterVerdict {
 
 const TOO_OLD_DAYS = 30;
 
+/**
+ * Deliberately does NOT include generic announcement language (launch,
+ * debut, unveil, introduce) — that was the original design, and it over-
+ * matched in practice: real PR Newswire noise (a freight-logistics service
+ * launch, a vitamin-brand network launch, an entertainment-IP debut) passed
+ * this gate on the announcement word alone, with zero food content anywhere
+ * in the text. Every real true positive observed already contains a genuine
+ * food word independent of any announcement word, so dropping them costs
+ * nothing real and closes the loophole.
+ */
 const FOOD_SIGNAL_PATTERN =
-  /food|snack|drink|beverage|menu|flavor|flavour|restaurant|burger|pizza|taco|sandwich|chicken|dessert|candy|chocolate|chip|soda|coffee|donut|doughnut|cereal|sauce|cookie|ice cream|cream|edition|launch(es|ing)?|debut(s)?|unveil(s)?|introduc(e|es|ing)/i;
+  /food|snack|drink|beverage|menu|flavor|flavour|restaurant|burger|pizza|taco|sandwich|chicken|dessert|candy|chocolate|chip|soda|coffee|donut|doughnut|cereal|sauce|cookie|ice cream|cream|edition/i;
 
 const LEGAL_OR_LAWSUIT_PATTERN =
   /class action|securities fraud|shareholder|investors (have|face)|law firm|lawsuit|\bllp\b|deadline:/i;

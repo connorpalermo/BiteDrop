@@ -643,13 +643,15 @@ Worth a second opinion, specifically:
   rejection message for `normalize`/`dedupe`/`enrich`/`publish`.
 - **Housekeeping (S8)** — the stale "Phase 4 owns `item_stage`" comment corrected
   to Phase 5 in `packages/db/src/schema/enums.ts` and `phase-02-database.md`.
-- **Tests** — `packages/core/test/filter.test.ts` (new, 12 cases, including the
-  three real Phase 4 noise titles by exact reason); `normalize.test.ts` gained
+- **Tests** — `packages/core/test/filter.test.ts` (new, 13 cases, including the
+  three real Phase 4 noise titles by exact reason plus the announcement-word
+  regression case added with the fix); `normalize.test.ts` gained
   `truncateAtWord` cases; `packages/llm/test/providers/rule-based.test.ts` (new,
-  23 cases); `packages/db/test/{filterRepository,extractRepository}.test.ts`
-  (new); `apps/ingest/test/{runFilterStage,runExtractStage}.test.ts` (new).
-  237 tests pass across 5 projects (`core`, `db`, `sources`, `llm`, and
-  `apps/ingest`'s tests folded into `db`).
+  25 cases, including the two confidence-rebalance regression cases);
+  `packages/db/test/{filterRepository,extractRepository}.test.ts` (new);
+  `apps/ingest/test/{runFilterStage,runExtractStage}.test.ts` (new). 240 tests
+  pass across 5 projects (`core`, `db`, `sources`, `llm`, and `apps/ingest`'s
+  tests folded into `db`).
 
 ### How to run it
 
@@ -677,27 +679,28 @@ and exits non-zero.
 
 ### Known limitations
 
-- **The `no_food_signal` announcement-language catch-all (`launch`/`debut`/
-  `unveil`/`introduce`) over-matches in practice, observed on the very first
-  real run.** Three of the first 10 created drops were false positives that
-  slipped through purely because their headlines used announcement phrasing
-  with nothing food-specific: a vitamin-brand product launch ("Swanson
-  Vitamins Launches..."), an entertainment-IP debut ("CSTS Debuts Global
-  Entertainment IP PremierX..."), and a freight-company correction notice. This
-  is exactly the failure mode the Plan's warning banner anticipated
-  ("deliberately simple ... will both over- and under-match"), now with a
-  concrete instance. Not fixed in this phase — flagged for the repo owner
-  rather than silently retuned, per the Review notes' request for a second
-  opinion on these exact heuristics.
-- **The `0.6` publish threshold turned out to barely filter anything.** Every
-  one of the 10 real drops created in the first live run published, including
-  the three false positives above — the trust-tier confidence baseline (0.5 or
-  0.7) plus any one heuristic hit clears `0.6` almost automatically, so in
-  practice the threshold currently only blocks hedge-language ("rumored")
-  items, which are separately capped at `0.4` anyway. The belt-and-suspenders
-  `status !== 'rumored'` check (S6) is doing real work here; the numeric
-  threshold, as tuned, is closer to decorative. Worth retuning once there's
-  more real output to look at.
+- ~~**The `no_food_signal` announcement-language catch-all (`launch`/`debut`/
+  `unveil`/`introduce`) over-matches in practice** — three of the first 10
+  created drops were false positives that slipped through purely because
+  their headlines used announcement phrasing with nothing food-specific: a
+  vitamin-brand product launch, an entertainment-IP debut, a freight-company
+  service launch.~~ **Fixed same session, reviewed with the repo owner:**
+  removed the four announcement-verb alternatives from the food-signal
+  pattern entirely — every real true positive already contained a genuine
+  food word independent of them, so nothing real was lost. Regression test
+  added (`filter.test.ts`) using the three exact real titles that used to
+  slip through.
+- ~~**The `0.6` publish threshold turned out to barely filter anything** — the
+  trust-tier confidence baseline (0.5 or 0.7) plus any one heuristic hit
+  cleared `0.6` almost automatically.~~ **Fixed same session:** rebalanced
+  `computeConfidence` so neither trust-tier baseline clears `0.6` alone
+  (tier 1: 0.7→0.45, tier 2: 0.5→0.35; brand +0.15→+0.2, category +0.1→+0.25,
+  date unchanged at +0.05) — a category match is now effectively required to
+  publish, not just a wire source. Re-verified live: all 7 real true
+  positives from the original run still publish (confidence 0.6–0.85); the
+  3 false positives are now rejected at the filter stage before extraction
+  even runs. Regression test added confirming bare trust tier never reaches
+  0.6 for either tier, and a bare category match reaches exactly 0.6.
 - **No new `Brand` row is ever auto-created** (as planned) — of the 10 real
   drops, only one ("Taco Bell Introduces New Dream Refrescas") matched a known
   brand; legitimate food news about brands outside Phase 2's 8-brand mock list
@@ -736,10 +739,8 @@ and exits non-zero.
 
 ### Recommended next step
 
-**Revisit the filter/confidence tuning with the repo owner before Phase 6**,
-using this phase's real output as the starting corpus — the three false
-positives and the barely-functional publish threshold are concrete, cheap to
-fix, and fixing them now means Phase 6's dedupe corpus starts from cleaner
-data. After that: **Phase 6 — Deduplication**, which is what turns this
+The filter/confidence tuning was revisited with the repo owner and fixed the
+same session (see Known limitations above). **Phase 6 — Deduplication** is
+next, now starting from a cleaner extracted corpus: it's what turns this
 phase's "every candidate is its own drop" simplification into the product's
 actual differentiator (four sources, one drop).
