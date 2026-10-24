@@ -37,7 +37,7 @@ Phase work is left in the working tree for the repo owner to commit as they see 
 | 3 | Deploy | **Complete — awaiting review** | [phase-03](./phase-03-deploy.md) |
 | 4 | Ingest CLI + first adapters | **Complete — awaiting review** | [phase-04](./phase-04-ingest.md) |
 | 5 | Filter + rule-based extraction | **Complete — awaiting review** | [phase-05](./phase-05-filter-extract.md) |
-| 6 | Deduplication | Not started | — |
+| 6 | Deduplication | Planned — awaiting review | [phase-06](./phase-06-deduplication.md) |
 | 7 | Scheduling + observability | Not started | — |
 | 8 | LLM extraction | Not started | — |
 | 9 | Enrichment | Not started | — |
