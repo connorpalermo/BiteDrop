@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { CategorySlug, CountryCode, DropStatus, FacetCount } from '@bitedrop/core';
 import { Button } from '@/components/ui/Button';
+import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { Sheet } from '@/components/ui/Sheet';
 import { useFeedFilters } from '@/lib/useFeedFilters';
 import { BrandFilter } from './BrandFilter';
@@ -41,6 +42,7 @@ export function FilterSheet({
             options={categoryOptions}
             selected={query.categories ?? []}
             onToggle={toggleCategory}
+            renderIcon={(option) => <CategoryIcon slug={option.value} className="h-3.5 w-3.5" />}
           />
           <ChipFilterGroup
             legend="Country"

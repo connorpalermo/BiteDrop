@@ -1,6 +1,5 @@
 import {
   PAGE_SIZE,
-  findCategory,
   findCountry,
   parseFeedQuery,
   type FeedQuery,
@@ -24,7 +23,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const [page, facets] = await Promise.all([repository.list(query), repository.facets()]);
 
   const categoryOptions: ChipFilterOption<(typeof facets.categories)[number]['value']>[] =
-    facets.categories.map((c) => ({ ...c, emoji: findCategory(c.value).emoji }));
+    facets.categories;
   const countryOptions: ChipFilterOption<(typeof facets.countries)[number]['value']>[] =
     facets.countries.map((c) => ({ ...c, emoji: findCountry(c.value).emoji }));
   const statusOptions = facets.statuses;

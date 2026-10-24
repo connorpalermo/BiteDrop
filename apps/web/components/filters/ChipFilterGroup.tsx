@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Chip } from '@/components/ui/Chip';
 import { FieldGroup } from '@/components/ui/FieldGroup';
 
@@ -15,6 +16,10 @@ interface ChipFilterGroupProps<T extends string> {
   options: ChipFilterOption<T>[];
   selected: T[];
   onToggle: (value: T) => void;
+  /** Overrides the emoji with a rendered icon (e.g. CategoryIcon) for just
+   * this group — leave unset for groups that should keep the emoji (country
+   * flags, status). */
+  renderIcon?: (option: ChipFilterOption<T>) => ReactNode;
 }
 
 export function ChipFilterGroup<T extends string>({
@@ -22,6 +27,7 @@ export function ChipFilterGroup<T extends string>({
   options,
   selected,
   onToggle,
+  renderIcon,
 }: ChipFilterGroupProps<T>) {
   return (
     <FieldGroup legend={legend}>
@@ -30,6 +36,7 @@ export function ChipFilterGroup<T extends string>({
           key={option.value}
           label={option.label}
           emoji={option.emoji}
+          icon={renderIcon?.(option)}
           count={option.count}
           selected={selected.includes(option.value)}
           disabled={option.count === 0}
