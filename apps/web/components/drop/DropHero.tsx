@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { findStatusLabel, formatDropDate, formatPrice, type FoodDropDetail } from '@bitedrop/core';
 import { Badge } from '@/components/ui/Badge';
+import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { statusTone } from './statusTone';
 
 function availabilityLabel(drop: FoodDropDetail, now: Date): string | null {
@@ -24,11 +25,8 @@ function DropImage({ drop }: { drop: FoodDropDetail }) {
           className="object-cover"
         />
       ) : (
-        <div
-          className="absolute inset-0 flex items-center justify-center text-6xl"
-          aria-hidden="true"
-        >
-          {drop.category.emoji}
+        <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+          <CategoryIcon slug={drop.category.slug} className="h-16 w-16 text-fg-subtle" />
         </div>
       )}
     </div>
@@ -48,8 +46,9 @@ export function DropHero({ drop }: { drop: FoodDropDetail }) {
           <Badge label="Limited" tone="amber" />
         ) : null}
       </div>
-      <h1 className="font-display text-2xl font-bold text-fg sm:text-3xl">
-        <span aria-hidden="true">{drop.category.emoji}</span> {drop.name}
+      <h1 className="flex items-center gap-2 font-display text-2xl font-bold text-fg sm:text-3xl">
+        <CategoryIcon slug={drop.category.slug} className="h-6 w-6 shrink-0 text-fg-subtle" />
+        {drop.name}
       </h1>
       {drop.brand ? <p className="text-base text-fg-muted">{drop.brand.name}</p> : null}
       <p className="max-w-prose text-base text-fg-muted">{drop.description}</p>

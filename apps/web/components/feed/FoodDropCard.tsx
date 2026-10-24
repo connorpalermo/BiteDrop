@@ -9,6 +9,7 @@ import {
 import type { FoodDropSummary } from '@bitedrop/core';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
+import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { FOCUS_RING } from '@/components/ui/focusRing';
 import { statusTone } from '@/components/drop/statusTone';
 
@@ -50,11 +51,8 @@ function CardImage({ drop, priority }: { drop: FoodDropSummary; priority?: boole
           unoptimized
         />
       ) : (
-        <div
-          className="absolute inset-0 flex items-center justify-center text-3xl"
-          aria-hidden="true"
-        >
-          {drop.category.emoji}
+        <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+          <CategoryIcon slug={drop.category.slug} className="h-10 w-10 text-fg-subtle" />
         </div>
       )}
       <div className="absolute left-2 top-2 flex gap-1.5">
@@ -90,8 +88,12 @@ export function FoodDropCard({ drop, priority }: FoodDropCardProps) {
       <Card interactive className="flex h-full flex-col">
         <CardImage drop={drop} priority={priority} />
         <div className="flex flex-1 flex-col gap-1.5 p-3">
-          <h3 className="line-clamp-2 font-display text-lg font-bold text-fg">
-            <span aria-hidden="true">{drop.category.emoji}</span> {drop.name}
+          <h3 className="flex items-start gap-1.5 line-clamp-2 font-display text-lg font-bold text-fg">
+            <CategoryIcon
+              slug={drop.category.slug}
+              className="mt-0.5 h-4 w-4 shrink-0 text-fg-subtle"
+            />
+            <span>{drop.name}</span>
           </h3>
           {drop.brand ? <p className="text-sm text-fg-muted">{drop.brand.name}</p> : null}
           <p className="line-clamp-2 text-sm text-fg-muted">{drop.shortDescription}</p>
