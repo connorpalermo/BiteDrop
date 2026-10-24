@@ -8,10 +8,11 @@ outlets appears once, with ten sources attached.
 
 ## Status
 
-**Phase 2 of 16.** The feed, filters, search, and detail pages run against a real
-Postgres database. Phases 1 (UI on mock data) and 2 (database + real reads) are
-built and self-verified, awaiting review — see [`docs/phases/`](./docs/phases) for
-per-phase records and [`CLAUDE.md`](./CLAUDE.md) for the current status line.
+**Phase 3 of 16.** Live at **https://bite-drop.vercel.app**, running against a real
+Postgres database on Neon, with CI on every PR. Phases 1–3 (UI on mock data,
+database + real reads, deploy) are built and self-verified, awaiting review — see
+[`docs/phases/`](./docs/phases) for per-phase records and [`CLAUDE.md`](./CLAUDE.md)
+for the current status line.
 
 ## Quick start
 

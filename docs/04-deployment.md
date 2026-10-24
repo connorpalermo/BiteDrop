@@ -119,6 +119,17 @@ choosing Supabase would mean accepting its footgun for features we do not use.
 
 Branching is a genuine bonus: preview deployments can get their own database.
 
+### Pooled vs. direct connections
+
+Neon gives two connection strings per database: **pooled** (host contains
+`-pooler`, PgBouncer in transaction mode) and **direct**. The running app uses
+the pooled string — many short-lived serverless connections is exactly what
+it's for. Migrations and seeding use the direct string instead, run from a
+laptop, since DDL and a long transaction through a transaction-mode pooler is
+the wrong fit. `postgres.js` also needs `prepare: false` against the pooled
+endpoint, since a pooler can hand a session a different backend between
+queries, breaking server-side prepared statement reuse.
+
 ### The real constraint: 0.5 GB
 
 This is the binding limit, and `raw_item.body_text` is what will consume it. Mitigations,

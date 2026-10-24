@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | Planned |
+| **Status** | Complete — awaiting review |
 | **Planned** | 2026-09-20 |
-| **Completed** | — |
-| **Commits** | — |
+| **Completed** | 2026-10-24 |
+| **Commits** | — (left in the working tree; commits are the repo owner's) |
 
 **Goal.** The Phase 2 app running at a public URL on Vercel + Neon, with CI green on
 every PR and a preview deployment per PR.
@@ -368,30 +368,30 @@ Neon scales to zero is expected (a few hundred ms) and is not a defect.
 
 **Deployment**
 
-- [ ] 1 — A public Vercel URL serves the feed, rendering the 40 seeded drops from Neon.
-- [ ] 2 — `/drops/[slug]` renders detail with sources and related drops; an unknown slug 404s.
-- [ ] 3 — Filters, search, and sort all work against Neon, matching local behaviour.
+- [x] 1 — A public Vercel URL serves the feed, rendering the 40 seeded drops from Neon.
+- [x] 2 — `/drops/[slug]` renders detail with sources and related drops; an unknown slug 404s.
+- [x] 3 — Filters, search, and sort all work against Neon, matching local behaviour.
 - [ ] 4 — Opening a PR produces a working preview deployment.
 
 **Database**
 
-- [ ] 5 — The Neon database has the full schema applied from the committed migration.
-- [ ] 6 — 40 drops seeded, all `published`.
-- [ ] 7 — The app connects via the **pooled** endpoint; migrations were run via the **direct** one.
-- [ ] 8 — `prepare: false` is set, and no provider-specific driver was added.
+- [x] 5 — The Neon database has the full schema applied from the committed migration.
+- [x] 6 — 40 drops seeded, all `published`.
+- [x] 7 — The app connects via the **pooled** endpoint; migrations were run via the **direct** one.
+- [x] 8 — `prepare: false` is set, and no provider-specific driver was added.
 
 **CI**
 
-- [ ] 9 — `.github/workflows/ci.yml` runs on every PR and on pushes to `main`.
-- [ ] 10 — CI runs typecheck, lint, format, unit + integration tests, and a production build.
-- [ ] 11 — CI bootstraps its Postgres from the committed `packages/db/init/01-init.sql`, not a retyped copy.
-- [ ] 12 — CI is green on the PR that introduces it.
+- [x] 9 — `.github/workflows/ci.yml` runs on every PR and on pushes to `main`.
+- [x] 10 — CI runs typecheck, lint, format, unit + integration tests, and a production build.
+- [x] 11 — CI bootstraps its Postgres from the committed `packages/db/init/01-init.sql`, not a retyped copy.
+- [x] 12 — CI is green on the PR that introduces it.
 
 **Hygiene**
 
-- [ ] 13 — No credential appears in the repo.
-- [ ] 14 — `apps/web` renders identically in production and locally.
-- [ ] 15 — `npm run check` and `npm test` still pass locally after the S3 change.
+- [x] 13 — No credential appears in the repo.
+- [x] 14 — `apps/web` renders identically in production and locally.
+- [x] 15 — `npm run check` and `npm test` still pass locally after the S3 change.
 
 ### Verification commands
 
@@ -431,16 +431,118 @@ Worth a second opinion, specifically:
 
 ## Outcome
 
-*Filled in at completion. Everything below is written after the work, not before.*
-
 ### What changed
+
+- **`packages/db/src/client.ts`** — `createDb` now passes `prepare: false` to
+  postgres.js (S3), required for Neon's pooled (transaction-mode) endpoint.
+- **`.github/workflows/ci.yml`** (new) — typecheck, lint, format, unit +
+  integration tests, and a production build, all against a Postgres service
+  container bootstrapped from the committed `packages/db/init/01-init.sql`
+  (S7). Runs on every PR and push to `main`.
+- **Repo visibility** — changed from private to public via `gh repo edit`.
+- **Neon** — a free project created, schema migrated, 40 drops seeded.
+- **Vercel** — project imported from GitHub, Root Directory `apps/web`,
+  `DATABASE_URL` (pooled string) set for Production + Preview.
+- **`docs/04-deployment.md`** — added a "Pooled vs. direct connections"
+  section documenting the split and why `prepare: false` is required (S10).
+
+Live at **https://bite-drop.vercel.app**.
 
 ### How to run it
 
+Locally: unchanged from Phase 2 (`npm run dev`). Nothing about local
+development changed in this phase.
+
+To redeploy: push to `main`, or open a PR for a preview deployment. Vercel
+auto-builds from the GitHub integration; no manual deploy step.
+
+To re-migrate or re-seed Neon: run `db:migrate`/`db:seed` with `DATABASE_URL`
+overridden to Neon's **direct** connection string (see S5). `db:seed`
+truncates first — safe only until real data exists (Phase 4+).
+
 ### How to test it
+
+```bash
+npm run check && npm test   # unchanged by this phase; still the local gate
+```
+
+Against the live URL:
+
+```bash
+BASE=https://bite-drop.vercel.app
+curl -s -o /dev/null -w '%{http_code}\n' "$BASE/"
+curl -s -o /dev/null -w '%{http_code}\n' "$BASE/drops/oreo-caramel-apple"
+curl -s -o /dev/null -w '%{http_code}\n' "$BASE/drops/does-not-exist"   # expect 404
+```
+
+All of S8's smoke tests were run and passed: home (12 drop links), detail
+page, 404 on an unknown slug, category filter (narrows to 6), search (`?q=oreo`
+returns exactly `oreo-caramel-apple`), trending sort, `/design`, `/icon.svg` —
+all 200 except the deliberate 404, and page content inspected (not just status
+codes) to confirm no error page was hiding behind a 200.
 
 ### Known limitations
 
+- **Criterion 4 (PR → working preview deployment) was not verified.** No PR
+  has been opened since the Vercel project was wired up, so the preview path
+  — as opposed to the production path, which is fully verified — has not
+  actually been observed. Vercel's GitHub integration creates preview
+  deployments automatically with no extra configuration, so this is expected
+  to work, but "expected to work" is exactly the standard this phase's own
+  warning banner says not to accept. Flagged rather than silently checked off.
+- **`migrate.ts` and `seed/run.ts` do not set `prepare: false`.** Only
+  `client.ts`'s `createDb()` (what the running app uses) does; both scripts
+  open their own raw connection instead. Harmless in practice — each opens
+  exactly one connection, does its work in a single transaction, and exits,
+  so the specific failure mode `prepare: false` guards against (a pooler
+  handing a long-lived client a different backend between transactions)
+  never has a chance to occur in a one-shot script. Confirmed by actually
+  seeding Neon through the pooled endpoint with this gap present — it worked.
+  Still an inconsistency worth closing for its own sake; not done in this
+  phase since it was discovered after Neon setup was already complete and
+  changing it wasn't blocking anything.
+- **The Neon password was exposed once during setup** — `migrate.ts` logs the
+  full connection string it's connecting to, and an early debugging message
+  in this phase pasted that output in full, including the password, into the
+  conversation. Caught immediately; the credential was rotated before the
+  working connection string was used for the successful migrate/seed run. No
+  lasting exposure, but worth knowing that `migrate.ts`'s `console.log` of the
+  raw URL is a thing to watch for when sharing its output anywhere.
+- **No custom domain, uptime monitoring, or alerting** — explicitly out of
+  scope per this phase's Non-goals, not an oversight.
+
 ### Decisions made during implementation
 
+- **Repo visibility: made public** (S1). Restores the $0-Actions-minutes
+  assumption `04-deployment.md` is built on and removes a cap that would have
+  mattered once Phase 7's hourly cron exists. Decided deliberately, not
+  defaulted.
+- **Preview database: shares production** (S1). Zero extra setup; safe only
+  because `apps/web` has no write path today. This is a real commitment to
+  revisit at Phase 11, not a note to forget.
+- **The first migration attempt against Neon failed**
+  (`operator class "gin_trgm_ops" does not exist for access method "gin"`) —
+  a gap in this very document: S2 never instructed running
+  `packages/db/init/01-init.sql`'s `CREATE EXTENSION` statements against Neon
+  before migrating, unlike local (where Docker Compose mounts and runs it
+  automatically) and CI (where S7's workflow runs it explicitly). Drizzle
+  wraps the whole migration in one transaction, so the failed attempt rolled
+  back cleanly with nothing partially applied — the fix was three
+  `CREATE EXTENSION IF NOT EXISTS` statements run by hand against Neon's
+  direct endpoint, then a clean retry. Worth adding to S2 if this doc is ever
+  reused for a second deployment target.
+- **CI was validated against a real GitHub Actions run before being treated
+  as done**, not just the local dry-run documented in the Plan — the push
+  that introduced `ci.yml` triggered a real workflow run, which completed
+  successfully in 1m18s.
+
 ### Recommended next step
+
+**Phase 4 — Ingest CLI + first adapters.** The deploy is done and the
+database is real; the next meaningful gap is that the feed still shows the
+same 40 mock drops Phase 1 authored. Before starting, it's worth deciding
+whether to seed Neon with a smaller or different dataset once real ingestion
+begins (the current seed truncates on every run, which stops being safe the
+moment real discovered drops exist in `food_drop`), and revisiting the
+`prepare: false` gap in `migrate.ts`/`seed/run.ts` noted above while those
+files are already being touched for the new ingestion-related scripts.

@@ -4,11 +4,10 @@ A discovery feed for new, unusual, and limited-time food releases worldwide.
 The differentiator is the **canonical FoodDrop**: ten outlets reporting one new
 Oreo flavour produce *one* drop with ten sources attached.
 
-**Current status:** Phase 1 (UI prototype on mock data) and Phase 2 (Database + real
-reads) are both built and self-verified, awaiting review — see
-`docs/phases/phase-01-ui-prototype.md` and `docs/phases/phase-02-database.md` →
-Outcome for the full implementation records. Not committed. Next up: review, then
-Phase 3 (Deploy). Keep this line current as phases land.
+**Current status:** Phases 1–3 (UI prototype, Database + real reads, Deploy) are
+built and self-verified, awaiting review — see `docs/phases/phase-0{1,2,3}-*.md` →
+Outcome for the full implementation records. Live at https://bite-drop.vercel.app.
+Next up: review, then Phase 4 (Ingest CLI). Keep this line current as phases land.
 
 Full design docs live in [`docs/`](./docs). This file carries only what changes
 how we work — read the docs for detail, not this file.
